@@ -42,8 +42,6 @@ class GetMailsResponse(BaseModel):
     emails: List[Email] = []
 
 
-# return {'status': True, "uid": uid, "from": message["From"], "subject": subject, "date": message["Date"],
-#           "body": body, 'attachments': attachments}
 class BodyResponse(BaseModel):
     status: bool
     uid: str
