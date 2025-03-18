@@ -192,7 +192,6 @@ async def get_body_message(data: GetBodyMessage, imap=Depends(get_imap_connectio
             "body": body, 'attachments': attachments}
 
 
-
 @api_v1.post("/get_body_message_test", tags=['get_body_message'])
 async def get_body_message_test(data: GetBodyMessage, imap=Depends(get_imap_connection)):
     folder = await encode_name_utf7_ascii(data.mbox)
