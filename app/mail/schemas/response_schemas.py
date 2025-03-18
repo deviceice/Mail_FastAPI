@@ -40,3 +40,20 @@ class GetMailsResponse(BaseModel):
     total_message: int = 0
     folders: list[str]
     emails: List[Email] = []
+
+
+# return {'status': True, "uid": uid, "from": message["From"], "subject": subject, "date": message["Date"],
+#           "body": body, 'attachments': attachments}
+class BodyResponse(BaseModel):
+    status: bool
+    uid: str
+    from_: str = Field(alias="from")
+    to: List[str] = []
+    date: str
+    body: str
+    attachments: List[Attachment] = []
+
+
+class Default200Response(BaseModel):
+    status: bool
+    message: str

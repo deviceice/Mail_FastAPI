@@ -16,12 +16,12 @@ class EmailSend(BaseModel):
 
 
 class NameFolder(BaseModel):
-    mbox: str
+    name: str
 
 
 class RenameFolder(BaseModel):
-    mbox: str
-    new_box: str
+    old_name_mbox: str
+    new_name_mbox: str
 
 
 class GetBodyMessage(BaseModel):

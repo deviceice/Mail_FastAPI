@@ -1,27 +1,3 @@
-# get_mails_request_example = {
-#     "Parametrs": {
-#         "content": {
-#             "application/json": {
-#                 "examples": {
-#                     "example1": {
-#                         "summary": "Пример с INBOX без last_uid",
-#                         "value": {
-#                             "mbox": "INBOX"
-#                         }
-#                     },
-#                     "example2": {
-#                         "summary": "Пример с INBOX и last_uid",
-#                         "value": {
-#                             "mbox": "INBOX",
-#                             "last_uid": "243"
-#                         }
-#                     }
-#                 }
-#             }
-#         }
-#     }
-# }
-
 send_mail_request_example = {
     "requestBody": {
         "content": {
@@ -68,13 +44,62 @@ send_mail_request_example = {
                         "summary": "Пример Ответа на письмо ",
                         "value": {
                             "to": "user@mail.palas",
-                            "subject": "Привет",
+                            "subject": "Ответ: Привет",
                             "body": "Отправляю письмо посмотрите",
                             "referance": "a28f777575be3a9440bcf61250d32b4a@mail.palas",
                             "attachments": []
                         }
                     }
 
+                }
+            }
+        }
+    }
+}
+create_folder_request_example = {
+    "requestBody": {
+        "content": {
+            "application/json": {
+                "examples": {
+                    "example1": {
+                        "summary": "Пример создание папки в почтовом ящике",
+                        "value": {
+                            "name": "Архив",
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+delete_folder_request_example = {
+    "requestBody": {
+        "content": {
+            "application/json": {
+                "examples": {
+                    "example1": {
+                        "summary": "Пример удаления папки в почтовом ящике",
+                        "value": {
+                            "name": "Архив",
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+rename_folder_request_example = {
+    "requestBody": {
+        "content": {
+            "application/json": {
+                "examples": {
+                    "example1": {
+                        "summary": "Пример изменения названия папки в почтовом ящике",
+                        "value": {
+                            "old_name_mbox": "Архив",
+                            "new_name_mbox": "Архив 2025"
+                        }
+                    }
                 }
             }
         }

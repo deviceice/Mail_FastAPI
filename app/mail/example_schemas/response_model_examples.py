@@ -117,3 +117,190 @@ get_mails_response_example = {
         }
     }
 }
+body_message_response_example = {
+    200: {
+        "description": "Ответа на получение тела письма",
+        "content": {
+            "application/json": {
+                'example': {
+                    "status": True,
+                    "uid": "989",
+                    "from": "user@mail.palas",
+                    "to": ["user@mail.palas"],
+                    "date": "Sat, 15 Mar 2025 15:24:54 +0300",
+                    "body": "Отправляю файл sources.list посмотрите",
+                    "attachments": [
+                        {
+                            "filename": "sources.list",
+                            "size": "198 Bytes"
+                        },
+                        {
+                            "filename": "sources2.list",
+                            "size": "198 Bytes"
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    404: {
+        "description": "Если не найдена Папка в почтовом ящике",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "Папка не найдена": {
+                        "value": {
+                            "message": "Папка NAME не найдена в почтовом ящике"
+                        }
+                    },
+                    "Письмо не найдено": {
+                        "value": {
+                            "message": "Письмо не найдено с таким UID = 942"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                'example': {'message': "Сервер IMAP не ответил"}
+            }
+        }
+    }
+}
+get_folders_response_example = {
+    200: {
+        "description": "Ответ на получения названия всех папок в почтовом ящике",
+        "content": {
+            "application/json": {
+                'example': {
+                    "status": True,
+                    "folders": [
+                        "Trash",
+                        "АРХИВ",
+                        "Sent",
+                        "Важное",
+                        "Drafts",
+                        "INBOX"
+                    ]
+                }
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                'example': {'message': "Сервер IMAP не ответил"}
+            }
+        }
+    }
+}
+create_folder_response_example = {
+    200: {
+        "description": "Ответ на создание папки в почтовом ящике",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "example1": {
+                        "summary": "Пример успешного ответа",
+                        "value": {
+                            "status": True,
+                            "message": "Папка NAME успешно создана"
+                        }
+                    },
+                    "example2": {
+                        "summary": "Пример если папка не создалась",
+                        "value": {
+                            "status": False,
+                            "message": "Не удалось создать папку NAME"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message": "Сервер IMAP не ответил"
+                }
+            }
+        }
+    }
+}
+delete_folder_response_example = {
+    200: {
+        "description": "Ответ на создание папки в почтовом ящике",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "example1": {
+                        "summary": "Пример успешного ответа",
+                        "value": {
+                            "status": True,
+                            "message": "Папка NAME успешно удалена"
+                        }
+                    },
+                    "example2": {
+                        "summary": "Пример если папка не создалась",
+                        "value": {
+                            "status": False,
+                            "message": "Не удалось удалить папку NAME"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message": "Сервер IMAP не ответил"
+                }
+            }
+        }
+    }
+}
+rename_folder_response_example = {
+    200: {
+        "description": "Ответ на изменения названия папки в почтовом ящике",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "example1": {
+                        "summary": "Пример успешного ответа",
+                        "value": {
+                            "status": True,
+                            "message": "Папка old_NAME успешно переименована в new_NAME"
+                        }
+                    },
+                    "example2": {
+                        "summary": "Пример если папку не удалось переименовать",
+                        "value": {
+                            "status": False,
+                            "message": "Не удалось переименовать папку old_NAME"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message": "Сервер IMAP не ответил"
+                }
+            }
+        }
+    }
+}

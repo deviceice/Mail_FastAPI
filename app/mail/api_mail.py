@@ -22,8 +22,8 @@ api_v1 = APIRouter(prefix="/api/v1")
             tags=['mails'])
 async def get_emails(
         request: Request,
-        mbox: str = Query('INBOX', description="Название папки в почтовом ящике", example="INBOX"),
-        limit: Optional[int] = Query(50, description="Количество писем для получения (от 1 до 100)", ge=1, le=100),
+        mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
+        limit: Optional[int] = Query(20, description="Количество писем для получения (от 1 до 100)", ge=1, le=100),
         last_uid: Optional[str] = Query(None,
                                         description="Последний UID письма, после которого прислать следующие письма"),
         imap=Depends(get_imap_connection)):
@@ -119,8 +119,6 @@ async def get_emails(
 
 @api_v1.post("/send_mail",
              openapi_extra=send_mail_request_example,
-             # response_model=GetMailsResponse,
-             # responses=get_mails_response_example,
              tags=['send_mail'])
 async def send_emails(email: EmailSend,
                       background_tasks: BackgroundTasks,
@@ -136,45 +134,79 @@ async def send_emails(email: EmailSend,
                             detail='Превышено колличество запросов к SMTP серверу')
 
 
-@api_v1.get("/get_folders", tags=['get_folders'])
+@api_v1.get("/get_folders", responses=get_folders_response_example, tags=['get_folders'])
 async def get_folders(imap=Depends(get_imap_connection)):
-    status, response = await imap.list('""', '"*"')
+    try:
+        status, response = await imap.list('""', '"*"')
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
     if status == 'OK':
         folders = await parse_folders(response)
-        return {'status': True, 'folders': folders}
+        return {'status': True,
+                'folders': folders}
     else:
-        return {'status': False, 'folders': None}
+        return {'status': False,
+                'folders': None}
 
 
-@api_v1.post("/create_folder", tags=['create_folder'])
-async def create_folder(data: NameFolder, imap=Depends(get_imap_connection)):
-    name = await encode_name_utf7_ascii(data.mbox)
-    status, response = await imap.create(name)
+@api_v1.post("/create_folder", openapi_extra=create_folder_request_example,
+             response_model=Default200Response,
+             responses=create_folder_response_example,
+             tags=['create_folder'])
+async def create_folder(mbox: NameFolder, imap=Depends(get_imap_connection)):
+    name = await encode_name_utf7_ascii(mbox.name)
+    try:
+        status, response = await imap.create(name)
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
     if status == 'OK':
-        return {'status': True, 'message': f"Папка {data.mbox} успешно создана"}
+        return {'status': True,
+                'message': f"Папка {mbox.name} успешно создана"}
     else:
-        return {'status': False, 'message': f"Не удалось создать папку {data.mbox}"}
+        return {'status': False,
+                'message': f"Не удалось создать папку {mbox.name}"}
 
 
-@api_v1.post("/delete_folder", tags=['delete_folder'])
-async def delete_folder(data: NameFolder, imap=Depends(get_imap_connection)):
-    name = await encode_name_utf7_ascii(data.mbox)
-    status, response = await imap.delete(name)
+@api_v1.post("/delete_folder", openapi_extra=delete_folder_request_example,
+             response_model=Default200Response,
+             responses=delete_folder_response_example,
+             tags=['delete_folder'])
+async def delete_folder(mbox: NameFolder, imap=Depends(get_imap_connection)):
+    name = await encode_name_utf7_ascii(mbox.name)
+    try:
+        status, response = await imap.delete(name)
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
     if status == 'OK':
-        return {'status': True, 'message': f"Папка {data.mbox} успешно создана"}
+        return {'status': True,
+                'message': f"Папка {mbox.name} успешно удалена"}
     else:
-        return {'status': False, 'message': f"Не удалось удалить папку {data.mbox}"}
+        return {'status': False,
+                'message': f"Не удалось удалить папку {mbox.name}"}
 
 
-@api_v1.post("/rename_folder", tags=['rename_folder'])
-async def rename_folder(data: RenameFolder, imap=Depends(get_imap_connection)):
-    old_name_folder = await encode_name_utf7_ascii(data.mbox)
-    new_name_folder = await encode_name_utf7_ascii(data.new_box)
-    status, response = await imap.rename(old_name_folder, new_name_folder)
+@api_v1.post("/rename_folder",
+             openapi_extra=rename_folder_request_example,
+             response_model=Default200Response,
+             responses=rename_folder_response_example,
+             tags=['rename_folder'])
+async def rename_folder(mbox: RenameFolder, imap=Depends(get_imap_connection)):
+    old_name_folder = await encode_name_utf7_ascii(mbox.old_name_mbox)
+    new_name_folder = await encode_name_utf7_ascii(mbox.new_name_mbox)
+    try:
+        status, response = await imap.rename(old_name_folder, new_name_folder)
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
     if status == 'OK':
-        return {'status': True, 'message': f"Папка {data.mbox} успешно переименована в {data.new_box}"}
+        return {'status': True,
+                'message': f"Папка {mbox.old_name_mbox} успешно переименована в {mbox.new_name_mbox}"}
     else:
-        return {'status': False, 'message': f"Не удалось переименовать папку {data.mbox}"}
+        return {'status': False,
+                'message': f"Не удалось переименовать папку {mbox.old_name_mbox}"}
 
 
 @api_v1.post("/get_body_message", tags=['get_body_message'])
@@ -188,15 +220,23 @@ async def get_body_message(data: GetBodyMessage, imap=Depends(get_imap_connectio
     subject = await get_decode_header_subject(message)
     body = await get_email_body(message)
     attachments = await get_attachments(message)
-    return {'status': True, "uid": data.uid, "from": message["From"], "subject": subject, "date": message["Date"],
-            "body": body, 'attachments': attachments}
+    return {'status': True,
+            "uid": data.uid,
+            "from": message["From"],
+            "subject": subject,
+            "date": message["Date"],
+            "body": body,
+            'attachments': attachments}
 
 
-@api_v1.get("/get_body_message", tags=['get_body_message'])
+@api_v1.get("/get_body_message",
+            response_model=BodyResponse,
+            responses=body_message_response_example,
+            tags=['get_body_message'])
 async def get_body_message(
-        mbox: str = Query('INBOX', description="Название папки в почтовом ящике", example="INBOX"),
-        uid: str = Query(989,
-                         description="Последний UID письма, после которого прислать следующие письма", example="989"),
+        mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
+        uid: str = Query(...,
+                         description="UID письма", example="989"),
         imap=Depends(get_imap_connection)):
     folder = await encode_name_utf7_ascii(mbox)
     try:
@@ -205,14 +245,25 @@ async def get_body_message(
         raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
                             detail='Сервер IMAP не ответил')
     if status != 'OK':
-        raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail="Папка не найдена в почтовом ящике")
+        raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND,
+                            detail=f"Папка {mbox} не найдена в почтовом ящике")
+
     status, response = await imap.uid("FETCH", uid, "(BODY[HEADER] BODY[1] BODYSTRUCTURE)")
     if status != 'OK':
-        if status != 'OK':
-            raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail="Письмо не найдено с таким UID")
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
+    if len(response) == 1:
+        raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail=f"Письмо не найдено с таким UID ={uid}")
     message = email.message_from_bytes(response[1])
     subject = await get_decode_header_subject(message)
     body = await decode_bytearray(response[3])
     attachments = await get_name_attachments(response[4])
-    return {'status': True, "uid": uid, "from": message["From"], "subject": subject, "date": message["Date"],
-            "body": body, 'attachments': attachments}
+
+    return {'status': True,
+            "uid": uid,
+            "from": message["From"],
+            'to': message['To'].split(',') if message['To'] else '',
+            "subject": subject,
+            "date": message["Date"],
+            "body": body,
+            'attachments': attachments}

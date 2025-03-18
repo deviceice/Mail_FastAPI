@@ -26,7 +26,7 @@ tags_metadata = [
     },
     {
         "name": "get_body_message",
-        "description": f"Получить текст и вложения письма",
+        "description": f"Получить тело письма(headers, body и attachments)",
     },
 
 ]
