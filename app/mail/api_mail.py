@@ -20,7 +20,7 @@ api_v1 = APIRouter(prefix="/api/v1")
             response_model=GetMailsResponse,
             responses=get_mails_response_example,
             tags=['mails'])
-async def get_emails(
+async def emails(
         request: Request,
         mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
         limit: Optional[int] = Query(20, description="Количество писем для получения (от 1 до 100)", ge=1, le=100),
@@ -134,8 +134,8 @@ async def send_emails(email: EmailSend,
                             detail='Превышено колличество запросов к SMTP серверу')
 
 
-@api_v1.get("/get_folders", responses=get_folders_response_example, tags=['get_folders'])
-async def get_folders(imap=Depends(get_imap_connection)):
+@api_v1.get("/folders", responses=get_folders_response_example, tags=['folders'])
+async def folders(imap=Depends(get_imap_connection)):
     try:
         status, response = await imap.list('""', '"*"')
     except asyncio.exceptions.TimeoutError:
@@ -209,10 +209,14 @@ async def rename_folder(mbox: RenameFolder, imap=Depends(get_imap_connection)):
                 'message': f"Не удалось переименовать папку {mbox.old_name_mbox}"}
 
 
-@api_v1.post("/get_body_message", tags=['get_body_message'])
+@api_v1.post("/get_body_message", tags=['body_message'])
 async def get_body_message(data: GetBodyMessage, imap=Depends(get_imap_connection)):
     folder = await encode_name_utf7_ascii(data.mbox)
-    status, _ = await imap.select(folder)
+    try:
+        status, _ = await imap.select(folder)
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
     if status != 'OK':
         raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail="Папка не найдена в почтовом ящике")
     status, response = await imap.uid("FETCH", data.uid, "(RFC822)")
@@ -229,11 +233,11 @@ async def get_body_message(data: GetBodyMessage, imap=Depends(get_imap_connectio
             'attachments': attachments}
 
 
-@api_v1.get("/get_body_message",
+@api_v1.get("/body_message",
             response_model=BodyResponse,
             responses=body_message_response_example,
-            tags=['get_body_message'])
-async def get_body_message(
+            tags=['body_message'])
+async def body_message(
         mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
         uid: str = Query(...,
                          description="UID письма", example="989"),

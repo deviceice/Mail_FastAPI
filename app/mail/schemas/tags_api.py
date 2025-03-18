@@ -9,24 +9,24 @@ tags_metadata = [
         "description": f"Отправить письмо или письма",
     },
     {
-        "name": "get_folders",
-        "description": "GET запрос на получение названий всех папок у пользователя",
+        "name": "folders",
+        "description": "Запрос на получение названий всех папок у пользователя",
     },
     {
         "name": "create_folder",
-        "description": "Создать папку в почтовом ящике. Отправить",
+        "description": "Создать папку в почтовом ящике.",
     },
     {
         "name": "delete_folder",
-        "description": "Удалить папку в почтовом ящике. Отправить",
+        "description": "Удалить папку в почтовом ящике.",
     },
     {
         "name": "rename_folder",
         "description": "Сменить название папки в почтовом ящике",
     },
     {
-        "name": "get_body_message",
-        "description": f"Получить тело письма(headers, body и attachments)",
+        "name": "body_message",
+        "description": "Получить тело письма(headers, body и attachments)",
     },
 
 ]
