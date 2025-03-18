@@ -219,7 +219,11 @@ async def get_body_message(data: GetBodyMessage, imap=Depends(get_imap_connectio
                             detail='Сервер IMAP не ответил')
     if status != 'OK':
         raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail="Папка не найдена в почтовом ящике")
+
     status, response = await imap.uid("FETCH", data.uid, "(RFC822)")
+    if status != 'OK':
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
     message = email.message_from_bytes(response[1])
     subject = await get_decode_header_subject(message)
     body = await get_email_body(message)
@@ -265,10 +269,9 @@ async def body_message(
 
     return {'status': True,
             "uid": uid,
-            "from": message["From"],
-            'to': message['To'].split(',') if message['To'] else '',
-            "subject": subject,
-            "date": message["Date"],
-            "body": body,
+            "from": message["From"] if message["From"] else '',
+            'to': message['To'].split(',') if message['To'] else [],
+            "subject": subject if subject else '',
+            "date": message["Date"] if message['Date'] else '',
+            "body": body if body else '',
             'attachments': attachments}
-
