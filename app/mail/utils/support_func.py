@@ -1,4 +1,5 @@
 import base64
+import binascii
 import re
 
 from email import encoders
@@ -170,3 +171,27 @@ async def create_email_with_attachments(email: EmailSend):
         )
         message.attach(part)
     return message
+
+
+async def decode_bytearray(string: bytearray):
+    base64_str = string.decode().strip()
+    try:
+        decoded_bytes = base64.b64decode(base64_str)
+    except binascii.Error:
+        return base64_str
+    return decoded_bytes.decode('utf-8')
+
+
+async def get_name_attachments(bodystructure):
+    attachment_pattern = re.compile(
+        rb'\(["\']?attachment["\']?\s+\(["\']?filename["\']?\s+["\']([^"\']+)["\']\s+["\']?size["\']?\s+["\']?(\d+)["\']?\)')
+
+    bodystructure_search = attachment_pattern.findall(bodystructure)
+    # если есть вложения, добавит имя файлы и размерl
+    parsed_attachments = []
+    if bodystructure_search:
+        parsed_attachments = [
+            {"filename": filename.decode(), "size": await format_size(int(size.decode()))}
+            for filename, size in bodystructure_search
+        ]
+    return parsed_attachments

@@ -192,30 +192,27 @@ async def get_body_message(data: GetBodyMessage, imap=Depends(get_imap_connectio
             "body": body, 'attachments': attachments}
 
 
-@api_v1.post("/get_body_message_test", tags=['get_body_message'])
-async def get_body_message_test(data: GetBodyMessage, imap=Depends(get_imap_connection)):
-    folder = await encode_name_utf7_ascii(data.mbox)
-    status, _ = await imap.select(folder)
+@api_v1.get("/get_body_message", tags=['get_body_message'])
+async def get_body_message(
+        mbox: str = Query('INBOX', description="Название папки в почтовом ящике", example="INBOX"),
+        uid: str = Query(989,
+                         description="Последний UID письма, после которого прислать следующие письма", example="989"),
+        imap=Depends(get_imap_connection)):
+    folder = await encode_name_utf7_ascii(mbox)
+    try:
+        status, _ = await imap.select(folder)
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
     if status != 'OK':
         raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail="Папка не найдена в почтовом ящике")
-    status, response = await imap.uid("FETCH", data.uid, "(BODY[HEADER] BODY[1] BODYSTRUCTURE)")
-    # print(response)
+    status, response = await imap.uid("FETCH", uid, "(BODY[HEADER] BODY[1] BODYSTRUCTURE)")
+    if status != 'OK':
+        if status != 'OK':
+            raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail="Письмо не найдено с таким UID")
     message = email.message_from_bytes(response[1])
     subject = await get_decode_header_subject(message)
-    # body = await get_email_body(response[2])
-    for test in response:
-        print(test)
-    print('_______________')
-    print(response[3])
-
-
-    body = email.message_from_bytes(response[3])
-    body = await decode_name_ascii_utf7(body)
-    print(body)
-
-    attachments = await get_attachments(message)
-    return {'status': True, "uid": data.uid, "from": message["From"], "subject": subject, "date": message["Date"],
+    body = await decode_bytearray(response[3])
+    attachments = await get_name_attachments(response[4])
+    return {'status': True, "uid": uid, "from": message["From"], "subject": subject, "date": message["Date"],
             "body": body, 'attachments': attachments}
-
-
-

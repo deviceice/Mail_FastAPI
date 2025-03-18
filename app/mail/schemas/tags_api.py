@@ -1,40 +1,3 @@
-send_mail = {
-    "to": "user@mail.palas",
-    "subject": "Присылаю вам файл",
-    "body": "Отправляю файл sources.list посмотрите",
-    "attachments": [
-        {
-            "filename": "sources.list",
-            "file": ""
-        },
-        {
-            "filename": "sources.list",
-            "file": ""
-        }]
-}
-
-attachment = {
-    "status": True,
-    "uid": "740",
-    "from": "user <user@mail.palas>",
-    "subject": "filename",
-    "date": "Thu, 13 Feb 2025 15:23:05 +0300",
-    "body": "filename",
-    "attachments": [
-        {
-            "filename": "Полезно для быстрого копирования.txt",
-            "content_type": "text/plain",
-            "size": 3703,
-            "data": ""
-        },
-        {
-            "filename": "Настройки config ПОЧТЫ полезные функции.txt",
-            "content_type": "text/plain",
-            "size": 1484,
-            "data": ""
-        }
-    ]
-}
 
 tags_metadata = [
     {
@@ -51,19 +14,19 @@ tags_metadata = [
     },
     {
         "name": "create_folder",
-        "description": "Создать папку в почтовом ящике. Отправить {'mbox': 'Название папки'}",
+        "description": "Создать папку в почтовом ящике. Отправить",
     },
     {
         "name": "delete_folder",
-        "description": "Удалить папку в почтовом ящике. Отправить {'mbox': 'Название папки'}",
+        "description": "Удалить папку в почтовом ящике. Отправить",
     },
     {
         "name": "rename_folder",
-        "description": "Сменить название папки в почтовом ящике. Отправить {'mbox': 'Название папки', 'new_box': 'Новое название'}",
+        "description": "Сменить название папки в почтовом ящике",
     },
     {
         "name": "get_body_message",
-        "description": f"Получить текст и вложения письма. Отправить 'mbox': 'Название папки', 'uid': 'uid СТРОКА!' Вернет {attachment}  ",
+        "description": f"Получить текст и вложения письма",
     },
 
 ]
