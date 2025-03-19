@@ -2,6 +2,8 @@ import asyncio
 import aiosmtplib
 from mail.setting_mail_server.settings_server import SettingsServer
 from contextlib import asynccontextmanager
+from fastapi import HTTPException
+from starlette import status as status_code
 from collections import defaultdict
 from loguru import logger
 
@@ -37,7 +39,8 @@ class SMTPPool:
 
             status, response = await smtp.login(user, password)
             if response not in ('Authentication succeeded'):
-                return {'status': False, 'message': response}
+                raise HTTPException(status_code=status_code.HTTP_401_UNAUTHORIZED,
+                                    detail='Не правильный логин или пароль')
             else:
                 return smtp
         except Exception as e:

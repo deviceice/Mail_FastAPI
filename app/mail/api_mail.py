@@ -5,7 +5,7 @@ from starlette import status as status_code
 
 from mail.imap_smtp_connect.imap_connection import get_imap_connection
 from mail.imap_smtp_connect.smtp_connection import get_smtp_connection
-from mail.utils.support_func import *
+from mail.support_func_API import *
 from mail.schemas.request_schemas import *
 from mail.schemas.response_schemas import *
 from mail.example_schemas.response_model_examples import *
@@ -264,7 +264,7 @@ async def body_message(
         raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail=f"Письмо не найдено с таким UID ={uid}")
     message = email.message_from_bytes(response[1])
     subject = await get_decode_header_subject(message)
-    body = await decode_bytearray(response[3])
+    body = await decode_bytearray_body(response[3])
     attachments = await get_name_attachments(response[4])
 
     return {'status': True,
@@ -275,3 +275,20 @@ async def body_message(
             "date": message["Date"] if message['Date'] else '',
             "body": body if body else '',
             'attachments': attachments}
+
+
+@api_v1.get("/status_folder")
+async def status_folder(
+        mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
+        imap=Depends(get_imap_connection)):
+    status, response = await imap.status(mbox, '(MESSAGES UNSEEN RECENT)')
+    print(status, response)
+    for item in response:
+        print(item)
+    return True
+    # if status_all != 'OK' or status_unread != 'OK':
+    #     raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+    #                         detail='Сервер IMAP не ответил')
+    # mails_uids = messages[0].decode().split()
+    # total_message = len(mails_uids)
+    # mails_uids_unseen = messages_unseen[0].decode().split()

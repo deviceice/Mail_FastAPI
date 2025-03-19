@@ -108,6 +108,22 @@ get_mails_response_example = {
             }
         }
     },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
     504: {
         "description": "Проблемы с IMAP сервером",
         "content": {
@@ -162,6 +178,22 @@ body_message_response_example = {
             }
         }
     },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
     504: {
         "description": "Проблемы с IMAP сервером",
         "content": {
@@ -187,6 +219,22 @@ get_folders_response_example = {
                         "INBOX"
                     ]
                 }
+            }
+        }
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
             }
         }
     },
@@ -220,6 +268,22 @@ create_folder_response_example = {
                         }
                     }
                 }
+            }
+        }
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
             }
         }
     },
@@ -258,6 +322,22 @@ delete_folder_response_example = {
             }
         }
     },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
     504: {
         "description": "Проблемы с IMAP сервером",
         "content": {
@@ -290,6 +370,22 @@ rename_folder_response_example = {
                         }
                     }
                 }
+            }
+        }
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
             }
         }
     },

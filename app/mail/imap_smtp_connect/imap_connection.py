@@ -1,6 +1,7 @@
 import asyncio
 import aioimaplib
 from fastapi import HTTPException
+from starlette import status as status_code
 
 from mail.setting_mail_server.settings_server import SettingsServer
 
@@ -34,11 +35,13 @@ class IMAPPool:
                 await self._close_connection(imap)
 
     async def _create_imap_connection(self, user: str, password: str):
-        imap = aioimaplib.IMAP4(host=SettingsServer.IMAP_IP, port=SettingsServer.IMAP_PORT, timeout=1)
+        imap = aioimaplib.IMAP4(host=SettingsServer.IMAP_IP, port=SettingsServer.IMAP_PORT, timeout=5)
         await imap.wait_hello_from_server()
         status, response = await imap.login(user, password)
+        if status == 'NO':
+            raise HTTPException(status_code=status_code.HTTP_401_UNAUTHORIZED, detail='Не правильный логин или пароль')
         if status != 'OK':
-            raise HTTPException(status_code=422, detail='Превышено количество запросов к IMAP серверу')
+            raise HTTPException(status_code=status_code.HTTP_429_TOO_MANY_REQUESTS, detail='Превышено количество запросов к IMAP серверу')
         return imap
 
     async def _is_connection_active(self, imap):
