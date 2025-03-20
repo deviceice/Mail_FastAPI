@@ -2,7 +2,9 @@ from mail.support_func_API.support_func import *
 
 
 async def get_elements_inbox_uid(arr, last_uid=None, limit=20):
-    # Возвращает последнии 10 uids сообщений из списка или 10 предыдущих uids сообщений от last_uid
+    """
+    Возвращает последнии N=limit elem из list или N=limit предыдущих elem начиная после last_uid
+    """
     if last_uid is None or len(last_uid) == 0:
         return arr[-limit:]
     else:
@@ -15,7 +17,15 @@ async def get_elements_inbox_uid(arr, last_uid=None, limit=20):
 
 
 async def clear_bytes_in_message(message):
-    # Функция возвращает массив с сообщениями в байта, и массива с флагами и вложениями(если есть) уже в читаемоем формате
+    """
+    Функция принимает и парсит ответ по такой структуре
+    FETCH должен быть с такой структурой "(FLAGS RFC822.HEADER BODYSTRUCTURE)"
+    status, message = await imap.uid("FETCH", ",".join(mails_uids), "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
+    Возвращает headers_data -
+    Массив сообщений [bytearray(b'Return-path: <user@ma******),bytearray(b'Return-path:*****)]
+    и data_flags_attachment= [{'number': 20, 'uid': '993', 'flags': False, 'attachments': []},
+    {'number': 21, 'uid': '994', 'flags': False, 'attachments': []}]
+    """
     headers_data = []
     data_flags_attachment = []
     message.pop()
@@ -43,7 +53,7 @@ async def clear_bytes_in_message(message):
             pass
             # continue
 
-        # если есть вложения, добавит имя файлы и размерl
+        # если есть вложения, добавит имя, файлы и размер
         parsed_attachments = []
         if bodystructure_search:
             parsed_attachments = [

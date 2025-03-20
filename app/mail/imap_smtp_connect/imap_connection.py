@@ -31,7 +31,7 @@ class IMAPPool:
             try:
                 await pool.put(imap)
             except Exception as e:
-                logger.error(f"Ошибка при возвращении соединения в пул: {e}")
+                logger.error(f"Ошибка при возвращении соединения в пул и закрытия папки в почтовом ящике: {e}")
                 await self._close_connection(imap)
 
     async def _create_imap_connection(self, user: str, password: str):
@@ -60,6 +60,7 @@ class IMAPPool:
 
     async def _close_connection(self, imap):
         try:
+            await imap.close()
             await imap.logout()
             await imap.quit()
         except Exception as e:

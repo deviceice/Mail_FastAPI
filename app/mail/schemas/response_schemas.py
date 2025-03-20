@@ -47,6 +47,7 @@ class BodyResponse(BaseModel):
     uid: str
     from_: str = Field(alias="from")
     to: List[str] = []
+    subject: str
     date: str
     body: str
     attachments: List[Attachment] = []
@@ -55,3 +56,9 @@ class BodyResponse(BaseModel):
 class Default200Response(BaseModel):
     status: bool
     message: str
+
+
+class StatusFolderResponse(BaseModel):
+    messages: int
+    recent: int
+    unseen: int

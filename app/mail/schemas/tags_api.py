@@ -1,32 +1,24 @@
-
 tags_metadata = [
     {
         "name": "mails",
-        "description": "Получение почты из папки",
+        "description": "API на Получения почты из папки",
     },
     {
         "name": "send_mail",
-        "description": f"Отправить письмо или письма",
+        "description": "API  на Отправку писем или письма",
     },
     {
         "name": "folders",
-        "description": "Запрос на получение названий всех папок у пользователя",
-    },
-    {
-        "name": "create_folder",
-        "description": "Создать папку в почтовом ящике.",
-    },
-    {
-        "name": "delete_folder",
-        "description": "Удалить папку в почтовом ящике.",
-    },
-    {
-        "name": "rename_folder",
-        "description": "Сменить название папки в почтовом ящике",
+        "description": "API для работы с папками ",
     },
     {
         "name": "body_message",
-        "description": "Получить тело письма(headers, body и attachments)",
+        "description": "API на получения тела письма",
+        # "description": "Получить тело письма(headers, body и attachments)",
+    },
+    {
+        "name": "status_folder",
+        "description": "API на получения статусов папки или списка папок "
     },
 
 ]

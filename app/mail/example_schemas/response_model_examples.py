@@ -143,6 +143,7 @@ body_message_response_example = {
                     "uid": "989",
                     "from": "user@mail.palas",
                     "to": ["user@mail.palas"],
+                    "subject": "Присылаю вам файл",
                     "date": "Sat, 15 Mar 2025 15:24:54 +0300",
                     "body": "Отправляю файл sources.list посмотрите",
                     "attachments": [
@@ -378,6 +379,59 @@ rename_folder_response_example = {
         "content": {
             "application/json": {
                 'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message": "Сервер IMAP не ответил"
+                }
+            }
+        }
+    }
+}
+status_folder_respinse_examplse = {
+    200: {
+        "description": "Ответ на получение статуса папки",
+        "content": {
+            "application/json": {
+                "example": {
+                    "summary": "Пример успешного ответа",
+                    "value": {
+                        'messages': 21,
+                        'recent': 0,
+                        'unseen': 3
+                    }
+
+                }
+            }
+        }
+
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    404: {
+        "description": "Если не найдена Папка в почтовом ящике",
+        "content": {
+            "application/json": {
+                'example': {'message': "Папка не найдена в почтовом ящике"}
             }
         }
     },
