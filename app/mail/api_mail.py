@@ -12,7 +12,6 @@ from mail.example_schemas.response_model_examples import *
 from mail.example_schemas.request_models_examples import *
 
 import email
-from email.header import decode_header
 
 api_v1 = APIRouter(prefix="/api/v1")
 
@@ -20,7 +19,7 @@ api_v1 = APIRouter(prefix="/api/v1")
 @api_v1.get('/mails',
             response_model=GetMailsResponse,
             responses=get_mails_response_example,
-            tags=['mails'],
+            tags=['GET mails'],
             summary="Получить письма из папки",
             description="Возвращает отрезок писем из папки без body, attachents только название и размер"
                         ", всего писем, название всех папок в почтовом ящике"
@@ -54,7 +53,8 @@ async def emails(
     # print(status_recent, messages_recent)
     # status, response = await imap.status(folder, '(MESSAGES UNSEEN RECENT)')
     # print(status, response)
-    if status_all != 'OK' or status_unread != 'OK':
+    if status_all != 'OK' and status_unread != 'OK':
+        await imap.close()
         raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
                             detail='Сервер IMAP не ответил')
     mails_uids = messages[0].decode().split()
@@ -65,6 +65,7 @@ async def emails(
     mails_uids = await get_elements_inbox_uid(mails_uids, last_uid, limit if limit is not None else 20)
     status, msg_data_bytes = await imap.uid("FETCH", ",".join(mails_uids), "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
     if status != 'OK':
+        await imap.close()
         return {'status': True, 'folders': folders, mbox: []}
 
     msg_data, options_message = await clear_bytes_in_message(msg_data_bytes)
@@ -93,6 +94,7 @@ async def emails(
             references_uids = references_data[0].decode().split() if status_reference == 'OK' else []
             status_message_reference, msg_data_reference_bytes = await imap.uid("FETCH", ",".join(references_uids),
                                                                                 "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
+
             msg_data_referances, options_references = await clear_bytes_in_message(msg_data_reference_bytes)
             # references_message = []
             for mail_uid_referance, msg_data_reference, option_reference in zip(references_uids, msg_data_referances,
@@ -118,13 +120,14 @@ async def emails(
                 # print(referance_message)
                 main_message['mails_referance'].append(referance_message)
         emails.append(main_message)
+    await imap.close()
     emails.reverse()
     return {'status': True, 'total_message': total_message, 'folders': folders, 'emails': emails}
 
 
 @api_v1.post("/send_mail",
              openapi_extra=send_mail_request_example,
-             tags=['send_mail'],
+             tags=['Send mails'],
              summary="Отправить письмо или письма с вложениями",
              description="Отправляет письмо или письма"
              )
@@ -142,7 +145,7 @@ async def send_emails(email: EmailSend,
                             detail='Превышено колличество запросов к SMTP серверу')
 
 
-@api_v1.get("/folders", responses=get_folders_response_example, tags=['folders'])
+@api_v1.get("/folders", responses=get_folders_response_example, tags=['Folders'])
 async def folders(imap=Depends(get_imap_connection)):
     try:
         status, response = await imap.list('""', '"*"')
@@ -162,7 +165,7 @@ async def folders(imap=Depends(get_imap_connection)):
              openapi_extra=create_folder_request_example,
              response_model=Default200Response,
              responses=create_folder_response_example,
-             tags=['folders'],
+             tags=['Folders'],
              summary="Создать папку",
              description="Создает папку в почтовом ящике пользователя"
              )
@@ -185,7 +188,7 @@ async def create_folder(mbox: NameFolder, imap=Depends(get_imap_connection)):
              openapi_extra=delete_folder_request_example,
              response_model=Default200Response,
              responses=delete_folder_response_example,
-             tags=['folders'],
+             tags=['Folders'],
              summary="Удалить папку",
              description="Удаляет папку в почтовом ящике пользователя"
              )
@@ -208,7 +211,7 @@ async def delete_folder(mbox: NameFolder, imap=Depends(get_imap_connection)):
              openapi_extra=rename_folder_request_example,
              response_model=Default200Response,
              responses=rename_folder_response_example,
-             tags=['folders'],
+             tags=['Folders'],
              summary="Переименовать папку",
              description="Изменяет название папки в почтовом ящике пользователя",
              )
@@ -231,7 +234,7 @@ async def rename_folder(mbox: RenameFolder, imap=Depends(get_imap_connection)):
 @api_v1.get("/body_message",
             response_model=BodyResponse,
             responses=body_message_response_example,
-            tags=['body_message'],
+            tags=['Body Mail'],
             summary="Получить тело письма",
             description="Получить тело письма(headers, body и attachments)")
 async def body_message(
@@ -250,6 +253,7 @@ async def body_message(
                             detail=f"Папка {mbox} не найдена в почтовом ящике")
 
     status, response = await imap.uid("FETCH", uid, "(BODY[HEADER] BODY[1.MIME] BODY[1] BODYSTRUCTURE)")
+    await imap.close()
     if status != 'OK':
         raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
                             detail='Сервер IMAP не ответил')
@@ -282,8 +286,8 @@ async def body_message(
 
 @api_v1.get("/status_folder",
             response_model=StatusFolderResponse,
-            responses=status_folder_respinse_examplse,
-            tags=['status_folder'],
+            responses=status_folder_response_example,
+            tags=['Status folder'],
             summary="Получить статус папки в почтовом ящике",
             description="Получить статус папки, а точнее колличество это -"
                         "message(всего сообщений), unseen(непрочитанных сообщений), "
@@ -301,3 +305,79 @@ async def status_folder(
                             detail='Сервер IMAP не ответил')
     result = await parse_status_response(response[0])
     return result
+
+
+# \\Flagged
+@api_v1.get("/mark_read",
+            response_model=StatusFlags,
+            responses=status_flags_response_example,
+            tags=['Flags'],
+            summary="Изменить статус прочитанного сообщения на непрочитанное или на оборот.",
+            description="Это API изменяет статус прочитанного сообщения на непрочитанное или на оборот. "
+                        "flag=true - изменит на прочитано. flag=false - изменит на непрочитанно")
+async def mark_read_unread(
+        mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
+        uid: str = Query(..., description="UID письма", example="989"),
+        flag: bool = Query(..., description=""),
+        imap=Depends(get_imap_connection)):
+    folder = await encode_name_utf7_ascii(mbox)
+    try:
+        status, _ = await imap.select(folder)
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
+    if status != 'OK':
+        raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND,
+                            detail=f"Папка {mbox} не найдена в почтовом ящике")
+    if flag:
+        status, _ = await imap.uid("STORE", uid, "+FLAGS", "(\\Seen)")
+        if status != 'OK':
+            await imap.close()
+            raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                                detail='Сервер IMAP не ответил')
+    else:
+        status, _ = await imap.uid("STORE", uid, "-FLAGS", "(\\Seen)")
+        if status != 'OK':
+            await imap.close()
+            raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                                detail='Сервер IMAP не ответил')
+    await imap.close()
+    return {'status': True}
+
+
+@api_v1.get("/mark_flagged",
+            response_model=StatusFlags,
+            responses=status_flags_response_example,
+            tags=['Flags'],
+            summary=" Установить флаг(пометить) \\Flagged.",
+            description="Это API изменяет статус сообщения. "
+                        "flag=true - изменит на отмеченно(добавить флаг)."
+                        " flag=false - изменит на неотмеченно(убрать флаг)")
+async def mark_read_unread(
+        mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
+        uid: str = Query(..., description="UID письма", example="989"),
+        flag: bool = Query(..., description=""),
+        imap=Depends(get_imap_connection)):
+    folder = await encode_name_utf7_ascii(mbox)
+    try:
+        status, _ = await imap.select(folder)
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail='Сервер IMAP не ответил')
+    if status != 'OK':
+        raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND,
+                            detail=f"Папка {mbox} не найдена в почтовом ящике")
+    if flag:
+        status, _ = await imap.uid("STORE", uid, "+FLAGS", "(\\Flagged)")
+        if status != 'OK':
+            await imap.close()
+            raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                                detail='Сервер IMAP не ответил')
+    else:
+        status, _ = await imap.uid("STORE", uid, "-FLAGS", "(\\Flagged)")
+        if status != 'OK':
+            await imap.close()
+            raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                                detail='Сервер IMAP не ответил')
+    await imap.close()
+    return {'status': True}

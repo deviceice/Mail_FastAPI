@@ -401,19 +401,62 @@ rename_folder_response_example = {
         }
     }
 }
-status_folder_respinse_examplse = {
+status_folder_response_example = {
     200: {
         "description": "Ответ на получение статуса папки",
         "content": {
             "application/json": {
                 "example": {
-                    "summary": "Пример успешного ответа",
-                    "value": {
-                        'messages': 21,
-                        'recent': 0,
-                        'unseen': 3
-                    }
+                    'messages': 21,
+                    'recent': 0,
+                    'unseen': 3
+                }
+            }
+        }
 
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    404: {
+        "description": "Если не найдена Папка в почтовом ящике",
+        "content": {
+            "application/json": {
+                'example': {'message': "Папка не найдена в почтовом ящике"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message": "Сервер IMAP не ответил"
+                }
+            }
+        }
+    }
+}
+status_flags_response_example = {
+    200: {
+        "description": "Ответ на получение статуса изменение флагов",
+        "content": {
+            "application/json": {
+                "example": {
+                    'status': True,
                 }
             }
         }

@@ -62,3 +62,7 @@ class StatusFolderResponse(BaseModel):
     messages: int
     recent: int
     unseen: int
+
+
+class StatusFlags(BaseModel):
+    status:bool
