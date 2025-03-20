@@ -50,22 +50,6 @@ async def get_email_body_test(response):
     return body
 
 
-# async def decode_bytearray_body(string: bytearray):
-#     """
-#     Декодируюет bytearray и возвращает либо Англ текст либо рус текст body сообщения
-#     """
-#     print(string)
-#     base64_str = string.decode().strip()
-#     # print(base64_str)
-#     try:
-#         decoded_bytes = base64.b64decode(base64_str)
-#     except binascii.Error:
-#         return base64_str
-#     try:
-#         return decoded_bytes.decode('utf-8')
-#     except Exception as e:
-#         return decoded_bytes
-
 async def get_name_attachments(bodystructure):
     """
     Парсит bodystructure и взращает list в котором dicts [{"filename": text.txt, "size":213},]

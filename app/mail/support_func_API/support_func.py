@@ -23,21 +23,6 @@ async def format_size(size_bytes):
         return f"{round(size_bytes / (1024 * 1024 * 1024), 2)} GB"
 
 
-async def get_email_body(msg):
-    # Возвращает body из сообщения
-    if msg.is_multipart():
-        for part in msg.get_payload():
-            body = await get_email_body(part)
-            if body:
-                return body
-    else:
-        if msg.get_content_type() == "text/plain":
-            payload = msg.get_payload(decode=True)
-            if payload:
-                return payload.decode("utf-8", errors="ignore")
-    return None
-
-
 async def parse_folders(response):
     # Возвращает все папки пользователя уже раскодированными
     folders = []

@@ -228,34 +228,6 @@ async def rename_folder(mbox: RenameFolder, imap=Depends(get_imap_connection)):
                 'message': f"Не удалось переименовать папку {mbox.old_name_mbox}"}
 
 
-@api_v1.post("/get_body_message", tags=['body_message'])
-async def get_body_message(data: GetBodyMessage, imap=Depends(get_imap_connection)):
-    folder = await encode_name_utf7_ascii(data.mbox)
-    try:
-        status, _ = await imap.select(folder)
-    except asyncio.exceptions.TimeoutError:
-        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
-                            detail='Сервер IMAP не ответил')
-    if status != 'OK':
-        raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND, detail="Папка не найдена в почтовом ящике")
-
-    status, response = await imap.uid("FETCH", data.uid, "(RFC822)")
-    if status != 'OK':
-        raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
-                            detail='Сервер IMAP не ответил')
-    message = email.message_from_bytes(response[1])
-    subject = await get_decode_header_subject(message)
-    body = await get_email_body(message)
-    attachments = await get_attachments(message)
-    return {'status': True,
-            "uid": data.uid,
-            "from": message["From"],
-            "subject": subject,
-            "date": message["Date"],
-            "body": body,
-            'attachments': attachments}
-
-
 @api_v1.get("/body_message",
             response_model=BodyResponse,
             responses=body_message_response_example,
