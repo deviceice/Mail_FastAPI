@@ -35,7 +35,8 @@ class SMTPPool:
         try:
             await smtp.connect(hostname=SettingsServer.SMTP_IP, port=SettingsServer.SMTP_PORT)
             if not smtp.is_connected:
-                return {'status': False, 'message': 'SMTP сервер не отвечает'}
+                raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                                    detail='Сервер SMTP не отвечает')
 
             status, response = await smtp.login(user, password)
             if response not in ('Authentication succeeded'):
@@ -45,7 +46,8 @@ class SMTPPool:
                 return smtp
         except Exception as e:
             logger.error(f"Ошибка при создании SMTP соединения: {e}")
-            return {'status': False, 'message': 'Ошибка при создании SMTP соединения'}
+            raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                                detail='Сервер SMTP не отвечает')
 
 
 smtp_pool = SMTPPool()

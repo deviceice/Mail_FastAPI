@@ -497,3 +497,59 @@ status_flags_response_example = {
         }
     }
 }
+move_emails_response_example = {
+    200: {
+        "description": "Ответ на перемещение письма из одной папки в другую",
+        "content": {
+            "application/json": {
+                "example": {
+                    'status': True,
+                    'message': f"Письмо(а) *** успешно перемещены из '****' в '**********'",
+                }
+            }
+        }
+
+    },
+    400: {
+        "description": "Не удалось переместить письмо",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не удалось переместить письмо:"}
+            }
+        }
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    404: {
+        "description": "Если не найдена Папка в почтовом ящике",
+        "content": {
+            "application/json": {
+                'example': {'message': "Папка не найдена в почтовом ящике"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message": "Сервер IMAP не ответил"
+                }
+            }
+        }
+    }
+}

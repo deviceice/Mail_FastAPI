@@ -36,7 +36,11 @@ class IMAPPool:
 
     async def _create_imap_connection(self, user: str, password: str):
         imap = aioimaplib.IMAP4(host=SettingsServer.IMAP_IP, port=SettingsServer.IMAP_PORT, timeout=5)
-        await imap.wait_hello_from_server()
+        try:
+            await imap.wait_hello_from_server()
+        except Exception as e:
+            raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                            detail=f'Сервер IMAP не ответил : {e}')
         status, response = await imap.login(user, password)
         if status == 'NO':
             raise HTTPException(status_code=status_code.HTTP_401_UNAUTHORIZED, detail='Не правильный логин или пароль')

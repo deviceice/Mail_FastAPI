@@ -27,3 +27,9 @@ class RenameFolder(BaseModel):
 class GetBodyMessage(BaseModel):
     mbox: str
     uid: str
+
+
+class MoveEmails(BaseModel):
+    source_folder: str
+    target_folder: str
+    uid: Union[str, List[str]]
