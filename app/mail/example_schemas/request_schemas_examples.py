@@ -105,7 +105,6 @@ rename_folder_request_example = {
         }
     }
 }
-
 move_mail_request_example = {
     "requestBody": {
         "content": {
@@ -121,6 +120,33 @@ move_mail_request_example = {
                     },
                     "example2": {
                         "summary": "Пример перемещения нескольких писем",
+                        "value": {
+                            "source_folder": "INBOX",
+                            "target_folder": "АРХИВ",
+                            "uid": ["1049","1048"],
+                        }
+                    },
+
+                }
+            }
+        }
+    }
+}
+copy_mail_request_example = {
+    "requestBody": {
+        "content": {
+            "application/json": {
+                "examples": {
+                    "example1": {
+                        "summary": "Пример копирования одного письма",
+                        "value": {
+                            "source_folder": "INBOX",
+                            "target_folder": "АРХИВ",
+                            "uid": "1051",
+                        }
+                    },
+                    "example2": {
+                        "summary": "Пример копирования нескольких писем",
                         "value": {
                             "source_folder": "INBOX",
                             "target_folder": "АРХИВ",

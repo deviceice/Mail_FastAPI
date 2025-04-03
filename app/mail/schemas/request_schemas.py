@@ -33,3 +33,9 @@ class MoveEmails(BaseModel):
     source_folder: str
     target_folder: str
     uid: Union[str, List[str]]
+
+
+class CopyEmails(BaseModel):
+    source_folder: str
+    target_folder: str
+    uid: Union[str, List[str]]
