@@ -32,7 +32,7 @@ api_v1 = APIRouter(prefix="/api/v1")
 async def emails(
         request: Request,
         mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
-        limit: Optional[int] = Query(20, description="Количество писем для получения (от 1 до 100)", ge=1, le=500),
+        limit: Optional[int] = Query(20, description="Количество писем для получения (от 1 до 100)", ge=1, le=100),
         last_uid: Optional[str] = Query(None,
                                         description="Последний UID письма, после которого прислать следующие письма"),
         imap=Depends(get_imap_connection)):
@@ -145,7 +145,7 @@ async def send_emails(email: EmailSend,
         return Response(status_code=status_code.HTTP_200_OK,
                         background=background_tasks.add_task(append_inbox_message_in_sent, message, imap))
     except Exception:
-        raise HttpMailError.SMTP_TOO_MANY_REQUESTS
+        raise HttpMailError.SMTP_TOO_MANY_REQUESTS_429
 
 
 @api_v1.get("/folders",
@@ -503,7 +503,7 @@ async def download_attachment(
 
     async def generate_chunk():
         # file = memoryview(response[1])
-        chunk_size = 1024 * 1024 * 8
+        chunk_size = 1024 * 1024
         for i in range(0, len(file), chunk_size):
             yield file[i:i + chunk_size]
 
