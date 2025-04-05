@@ -9,7 +9,7 @@ class Attachment(BaseModel):
     size: str
 
 
-class EmailReferanse(BaseModel):
+class EmailReferense(BaseModel):
     uid: str
     message_id: str
     from_: str = Field(alias="from")
@@ -32,7 +32,7 @@ class Email(BaseModel):
     is_read: bool
     flags: bool
     attachments: List[Attachment] = []
-    mails_referance: List[EmailReferanse] = []
+    mails_referance: List[EmailReferense] = []
 
 
 class GetMailsResponse(BaseModel):

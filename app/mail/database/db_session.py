@@ -27,14 +27,16 @@ async def create_tables_mail():
     async with async_db_mail.engine.begin() as conn:
         try:
             await conn.execute(CreateSchema('mail'))
-            logger.success('Схема для mail успешно создана!')
+            # logger.success('Схема для mail успешно создана!')
         except sqlalchemy.exc.ProgrammingError:
+            # logger.success('Схема для mail уже сущесвует!')
             pass
             # logger.success("Схема для mail уже существует в БД")
         try:
             await conn.run_sync(Base.metadata.create_all)
             # await conn.run_sync(Base.metadata)
-            logger.success("Таблицы для mail успешно созданы")
+            # logger.success("Таблицы для mail успешно созданы")
         except sqlalchemy.exc.DBAPIError:
+            # logger.success("Таблицы для mail уже существуют")
             pass
-            # logger.success("Таблицы для mail уже существуют в бд")
+

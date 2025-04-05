@@ -123,7 +123,7 @@ move_mail_request_example = {
                         "value": {
                             "source_folder": "INBOX",
                             "target_folder": "АРХИВ",
-                            "uid": ["1049","1048"],
+                            "uid": ["1049", "1048"],
                         }
                     },
 
@@ -150,7 +150,7 @@ copy_mail_request_example = {
                         "value": {
                             "source_folder": "INBOX",
                             "target_folder": "АРХИВ",
-                            "uid": ["1049","1048"],
+                            "uid": ["1049", "1048"],
                         }
                     },
 

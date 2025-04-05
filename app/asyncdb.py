@@ -1,10 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from pydantic import PostgresDsn
 from pydantic_core import MultiHostUrl
-from pydantic import PostgresDsn
 from config import Settings
-
 
 settings = Settings()
 
@@ -32,7 +29,9 @@ class AsyncDB:
         await self.create_async_sessionmaker()
 
     async def create_engine(self, header_name_in_config):
-        self.engine = create_async_engine(asyncpg_url(header_name_in_config).unicode_string(), pool_size=20, max_overflow=0,
+        self.engine = create_async_engine(asyncpg_url(header_name_in_config).unicode_string(),
+                                          pool_size=20,
+                                          max_overflow=0,
                                           pool_pre_ping=False,
                                           future=True,
                                           echo=False)

@@ -6,28 +6,42 @@ from mail.database.db_session import create_tables_mail
 from mail.api_mail import api_v1
 from loguru import logger
 from mail.database.db_session import async_db_mail
+from mail.imap_smtp_connect.imap_connection import IMAPPool
 from mail.schemas.tags_api import tags_metadata
 
 
+# редис для авторизации в разработке
 async def lifespan(_app: FastAPI):
     logger.success('_______________________________________________________________________________________________')
+    logger.success('Запускается Почтовый сервер')
+    # redis = Redis.from_url("redis://localhost:6379", decode_responses=True)
+    # _app.state.redis = redis
     try:
-        logger.success('Запускается Почтовый сервер')
-        await async_db_mail.create_eng_session('DB_MAIL')  # create engin и session db HANDBOOK
-        await create_tables_mail()  # create table if DB clear HANDBOOK
+        await async_db_mail.create_eng_session('DB_MAIL')
+        await create_tables_mail()
+        # await redis.ping()
+        # logger.success("Подключение к Redis установлено")
+        # _app.state.celery = create_celery_app()
         yield
     except Exception as e:
         logger.error(f"Не удалось подключиться к бд чтобы создать таблицы   {e}")
         yield
     finally:
         logger.success("Работа Почтового сервера завершена!")
+        # await redis.close()
+        # logger.success("Подключение к Redis закрыто")
 
 
-app = FastAPI(title="Почта Rubin", version="0.1", lifespan=lifespan, openapi_tags=tags_metadata)
-# static_dir_handbook = os.path.join(os.path.dirname(__file__), "mail/static")  # find dir static for Handbook
+app = FastAPI(title="Почта Rubin",
+              debug=True,
+              version="0.1",
+              lifespan=lifespan,
+              # dependencies= [Аутентификация по JWT],
+              openapi_tags=tags_metadata)
 
+# static_dir_handbook = os.path.join(os.path.dirname(__file__), "mail/static")
 # app.mount("/mail/static", StaticFiles(directory=static_dir_handbook, html=True),
-#           name="/mail/static")  # static for mail
+#           name="/mail/static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,7 +53,7 @@ app.add_middleware(
 
 
 @app.exception_handler(HTTPException)
-async def custom_http_exception_handler(request: Request, exc: HTTPException):
+async def custom_http_exception_handler(exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"message": exc.detail}

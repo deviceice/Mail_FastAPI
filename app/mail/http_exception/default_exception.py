@@ -23,7 +23,7 @@ class HttpExceptionMail:
 
     MOVING_COPY_MESSAGE_ERROR_409 = HTTPException(status_code=status_code.HTTP_409_CONFLICT,
                                                   detail=f"Не удалось переместить письмо")
-    ERORR_IN_BACKEND_SERVER_500 = HTTPException(status_code=status_code.HTTP_503_SERVICE_UNAVAILABLE,
+    ERROR_IN_BACKEND_SERVER_500 = HTTPException(status_code=status_code.HTTP_503_SERVICE_UNAVAILABLE,
                                                 detail=f"Ошибка в Backend, сообщине разработчику для исправления")
 
     NOT_AUTHENTICATED_401 = HTTPException(status_code=401, detail='Не правильный логин или пароль')
