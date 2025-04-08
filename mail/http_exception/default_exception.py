@@ -6,6 +6,9 @@ class HttpExceptionMail:
     IMAP_TIMEOUT_504 = HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
                                      detail='Сервер IMAP не ответил')
 
+    SMTP_TIMEOUT_504 = HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
+                                     detail='Сервер SMTP не ответил')
+
     SMTP_TOO_MANY_REQUESTS_429 = HTTPException(status_code=status_code.HTTP_429_TOO_MANY_REQUESTS,
                                                detail='Превышено колличество запросов к SMTP серверу')
 
