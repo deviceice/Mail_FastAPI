@@ -1,56 +1,103 @@
 import asyncio
+import time
+
 import aiosmtplib
-from mail.setting_mail_server.settings_server import SettingsServer
+from typing import Union
 from contextlib import asynccontextmanager
 from fastapi import HTTPException
 from starlette import status as status_code
 from collections import defaultdict
 from loguru import logger
 
+from mail.http_exception.default_exception import HttpExceptionMail
+from mail.setting_mail_server.settings_server import SettingsServer
+from mail.imap_smtp_connect.timed_connection import TimedConnection
+
 
 class SMTPPool:
-    def __init__(self):
+    def __init__(self, expiry_seconds: int = 1800,  # 30 минут по умолчанию
+                 timeout: Union[int, float] = 1.5):
         self.pools = defaultdict(asyncio.Queue)
+        self.expiry_seconds = expiry_seconds  # Время жизни соединения в секундах
+        self.timeout_connect = timeout  # Таймаут на подключение к IMAP серверу
 
     @asynccontextmanager
     async def get_connection(self, user: str, password: str):
         pool = self.pools[user]
-        if pool.empty():
-            smtp = await self._create_smtp_connection(user, password)
-        else:
-            smtp = await pool.get()
+        timed_conn = None
+        smtp = None
         try:
-            if not smtp.is_connected:
-                try:
-                    await smtp.quit()
-                except Exception:
-                    pass
+            if pool.empty():
                 smtp = await self._create_smtp_connection(user, password)
+                timed_conn = TimedConnection(smtp)
+            else:
+                timed_conn = await pool.get()
+                if timed_conn.is_expired(self.expiry_seconds) or not await timed_conn.connection.is_connected:
+                    logger.warning("Соединение устарело или неактивно. Пересоздаем...")
+                    # await self._close_connection(timed_conn.connection)
+                    smtp = await self._create_smtp_connection(user, password)
+                    timed_conn = TimedConnection(smtp)
+                else:
+                    smtp = timed_conn.connection
+                if not await smtp.connection.is_connected:
+                    raise HttpExceptionMail.SMTP_TIMEOUT_504
+
             yield smtp
         finally:
-            await pool.put(smtp)
+            if smtp:
+                try:
+                    if smtp.is_connected:
+                        timed_conn.last_used = time.time()
+                        await pool.put(timed_conn)
+                    else:
+                        logger.warning("Соединение неактивно, не возвращаем в пул")
+                        await self._close_smtp_connection(smtp)
+                except Exception as e:
+                    logger.error(f"Ошибка при возврате соединения: {e}")
+                    # await self._close_connection(smtp)
+
+                # smtp = await pool.get()
+                #
+                # if not smtp.is_connected:
+                #     try:
+                #         await smtp.quit()
+                #     except Exception:
+                #         pass
+                #     smtp = await self._create_smtp_connection(user, password)
+                # yield smtp
+                #
+                # await pool.put(smtp)
 
     async def _create_smtp_connection(self, user: str, password: str):
-        smtp = aiosmtplib.SMTP()
+        smtp = aiosmtplib.SMTP(hostname=SettingsServer.SMTP_IP,
+                               port=SettingsServer.SMTP_PORT,
+                               timeout=self.timeout_connect)
         try:
-            await smtp.connect(hostname=SettingsServer.SMTP_IP, port=SettingsServer.SMTP_PORT)
+            await smtp.connect()
             if not smtp.is_connected:
-                raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
-                                    detail='Сервер SMTP не отвечает')
+                raise HttpExceptionMail.SMTP_TIMEOUT_504
 
             status, response = await smtp.login(user, password)
             if response not in ('Authentication succeeded'):
-                raise HTTPException(status_code=status_code.HTTP_401_UNAUTHORIZED,
-                                    detail='Не правильный логин или пароль')
+                raise HttpExceptionMail.NOT_AUTHENTICATED_401
             else:
                 return smtp
         except Exception as e:
             logger.error(f"Ошибка при создании SMTP соединения: {e}")
-            raise HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
-                                detail='Сервер SMTP не отвечает')
+            raise HttpExceptionMail.SMTP_TIMEOUT_504
+
+    async def _close_smtp_connection(self, smtp):
+        try:
+            await smtp.close()
+        except Exception as e:
+            logger.error(f"Ошибка при закрытии: {e}")
+        try:
+            await smtp.logout()
+        except Exception as e:
+            logger.error(f"Ошибка при выходе: {e}")
 
 
-smtp_pool = SMTPPool()
+smtp_pool = SMTPPool(expiry_seconds=1800)
 
 
 async def get_smtp_connection():
@@ -58,40 +105,3 @@ async def get_smtp_connection():
     password = '12345678'  # test
     async with smtp_pool.get_connection(user, password) as smtp:
         yield smtp
-
-# smtp_pools = defaultdict(asyncio.Queue)
-#
-# @asynccontextmanager
-# async def smtp_connection_pool(user, password):
-#     pool = smtp_pools[user]
-#     if pool.empty():
-#         smtp = await create_smtp_connection(user, password)
-#     else:
-#         smtp = await pool.get()
-#     try:
-#         if not smtp.is_connected:
-#             try:
-#                 await smtp.quit()
-#             except Exception:
-#                 pass
-#             smtp = await create_smtp_connection(user, password)
-#         yield smtp
-#     finally:
-#         await pool.put(smtp)
-#
-#
-# async def create_smtp_connection(user, password):
-#     smtp = aiosmtplib.SMTP()
-#     try:
-#         await smtp.connect(hostname=SettingsServer.SMTP_IP, port=SettingsServer.SMTP_PORT)
-#         if not smtp.is_connected:
-#             return {'status': False, 'message': 'SMTP сервер не отвечает'}
-#
-#         status, response = await smtp.login(user, password)
-#         if response not in ('Authentication succeeded'):
-#             return {'status': False, 'message': response}
-#         else:
-#             return smtp
-#     except Exception as e:
-#         logger.error(f"Ошибка при создании SMTP соединения: {e}")
-#         return {'status': False, 'message': 'Ошибка при создании SMTP соединения'}

@@ -1,51 +1,75 @@
 import asyncio
 import aioimaplib
-from mail.setting_mail_server.settings_server import SettingsServer
-from mail.http_exception.default_exception import HttpExceptionMail
+import time
+from typing import Union
 from contextlib import asynccontextmanager
 from collections import defaultdict
 from loguru import logger
+from mail.setting_mail_server.settings_server import SettingsServer
+from mail.http_exception.default_exception import HttpExceptionMail
+from mail.imap_smtp_connect.timed_connection import TimedConnection
 
 
 # redis: Redis = Depends(lambda: app.state.redis) redis подключение редис
 # Пулы соединений хранятся только локально, при масштабировании нужна привязка в Nginx к  инстансу
+
+
 class IMAPPool:
-    def __init__(self):
+    def __init__(self, expiry_seconds: int = 1800,  # 30 минут по умолчанию
+                 timeout: Union[int, float] = 1.5):
         self.pools = defaultdict(asyncio.Queue)
+        self.expiry_seconds = expiry_seconds  # Время жизни соединения в секундах
+        self.timeout_connect = timeout  # Таймаут на подключение к IMAP серверу
 
     @asynccontextmanager
     async def get_connection(self, user: str, password: str):
         pool = self.pools[user]
-        if pool.empty():
-            imap = await self._create_imap_connection(user, password)
-        else:
-            imap = await pool.get()
-            if not await self._is_connection_active(imap):
-                logger.warning("Соединение неактивно. Пересоздаем...")
-                await self._close_connection(imap)
-                imap = await self._create_imap_connection(user, password)
+        timed_conn = None
+        imap = None
+
         try:
+            if pool.empty():
+                imap = await self._create_imap_connection(user, password)
+                timed_conn = TimedConnection(imap)
+            else:
+                timed_conn = await pool.get()
+                if timed_conn.is_expired(self.expiry_seconds) or not await self._is_connection_active(
+                        timed_conn.connection):
+                    logger.warning("Соединение устарело или неактивно. Пересоздаем...")
+                    # await self._close_connection(timed_conn.connection)
+                    imap = await self._create_imap_connection(user, password)
+                    timed_conn = TimedConnection(imap)
+                else:
+                    imap = timed_conn.connection
+
             if not await self._is_connection_active(imap):
                 raise HttpExceptionMail.IMAP_TIMEOUT_504
+
             yield imap
+
         finally:
             if imap:
                 try:
-                    # Проверяем активность перед возвратом в пул
                     if await self._is_connection_active(imap):
-                        await pool.put(imap)
+                        timed_conn.last_used = time.time()
+                        await pool.put(timed_conn)
                     else:
                         logger.warning("Соединение неактивно, не возвращаем в пул")
                         await self._close_connection(imap)
                 except Exception as e:
                     logger.error(f"Ошибка при возврате соединения: {e}")
-                    await self._close_connection(imap)
+                    # await self._close_connection(imap)
 
     async def _create_imap_connection(self, user: str, password: str):
-        imap = aioimaplib.IMAP4(host=SettingsServer.IMAP_IP, port=SettingsServer.IMAP_PORT, timeout=1.5)
+        imap = aioimaplib.IMAP4(
+            host=SettingsServer.IMAP_IP,
+            port=SettingsServer.IMAP_PORT,
+            timeout=self.timeout_connect
+        )
         try:
             await imap.wait_hello_from_server()
-        except Exception:
+        except Exception as e:
+            logger.error(f"Ошибка подключения: {e}")
             raise HttpExceptionMail.IMAP_TIMEOUT_504
         status, response = await imap.login(user, password)
         if status == 'NO':
@@ -54,36 +78,32 @@ class IMAPPool:
             raise HttpExceptionMail.IMAP_TOO_MANY_REQUESTS_429
         return imap
 
-    async def _is_connection_active(self, imap):
+    async def _is_connection_active(self, imap) -> bool:
         try:
-            status, response = await imap.noop()
+            status, _ = await imap.noop()
             return status == 'OK' and imap.get_state() not in ('LOGOUT', 'NON_AUTH')
         except (asyncio.TimeoutError, aioimaplib.Abort, Exception) as e:
-            logger.error(f'Не смог приконнектиться: {e}')
+            logger.error(f"Ошибка проверки активности: {e}")
             return False
 
     async def close_all_connections(self):
         for user, pool in self.pools.items():
             while not pool.empty():
-                imap = await pool.get()
-                await self._close_connection(imap)
+                timed_conn = await pool.get()
+                await self._close_connection(timed_conn.connection)
 
     async def _close_connection(self, imap):
         try:
             await imap.close()
         except Exception as e:
-            # Тестировка возможных ошибок
-            logger.error(e)
-            pass
+            logger.error(f"Ошибка при закрытии: {e}")
         try:
             await imap.logout()
         except Exception as e:
-            # Тестировка возможных ошибок
-            logger.error(e)
-            pass
+            logger.error(f"Ошибка при выходе: {e}")
 
 
-imap_pool = IMAPPool()
+imap_pool = IMAPPool(expiry_seconds=1800)
 
 
 async def get_imap_connection():
