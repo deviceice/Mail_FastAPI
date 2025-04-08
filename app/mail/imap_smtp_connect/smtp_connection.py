@@ -54,19 +54,6 @@ class SMTPPool:
                         await self._close_smtp_connection(smtp)
                 except Exception as e:
                     logger.error(f"Ошибка при возврате соединения: {e}")
-                    # await self._close_connection(smtp)
-
-                # smtp = await pool.get()
-                #
-                # if not smtp.is_connected:
-                #     try:
-                #         await smtp.quit()
-                #     except Exception:
-                #         pass
-                #     smtp = await self._create_smtp_connection(user, password)
-                # yield smtp
-                #
-                # await pool.put(smtp)
 
     async def _create_smtp_connection(self, user: str, password: str):
         smtp = aiosmtplib.SMTP(hostname=SettingsServer.SMTP_IP,
@@ -91,10 +78,7 @@ class SMTPPool:
             await smtp.close()
         except Exception as e:
             logger.error(f"Ошибка при закрытии: {e}")
-        try:
-            await smtp.logout()
-        except Exception as e:
-            logger.error(f"Ошибка при выходе: {e}")
+
 
 
 smtp_pool = SMTPPool(expiry_seconds=1800)

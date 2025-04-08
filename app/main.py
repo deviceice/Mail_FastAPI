@@ -1,12 +1,11 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from mail.database.db_session import create_tables_mail
-from mail.api_mail import api_v1
+from mail.api.api_mail import api_v1
 from loguru import logger
 from mail.database.db_session import async_db_mail
-from mail.imap_smtp_connect.imap_connection import IMAPPool
 from mail.schemas.tags_api import tags_metadata
 
 

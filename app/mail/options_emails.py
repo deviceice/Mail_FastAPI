@@ -1,3 +1,4 @@
+# Архитектура еще не определена! не обращайте внимание на файл
 class EmailFlags:
     flags = {
         "deleted": "\\Deleted",

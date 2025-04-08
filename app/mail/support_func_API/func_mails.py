@@ -1,4 +1,5 @@
 from mail.support_func_API.support_func import *
+import email
 
 
 async def get_elements_inbox_uid(arr, last_uid=None, limit=20):
@@ -65,3 +66,37 @@ async def clear_bytes_in_message(message):
             message_dict['attachments'] = parsed_attachments
         data_flags_attachment.append(message_dict)
     return headers_data, data_flags_attachment
+
+
+# async def get_references(imap, message_id: str, mails_uids_unseen: list) -> list:
+#     search_criteria = f'HEADER References "{message_id}"'
+#     status_reference, references_data = await imap.uid_search(search_criteria)
+#     references_uids = references_data[0].decode().split() if status_reference == 'OK' else []
+#     status_message_reference, msg_data_reference_bytes = await imap.uid("FETCH", ",".join(references_uids),
+#                                                                         "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
+#
+#     msg_data_referances, options_references = await clear_bytes_in_message(msg_data_reference_bytes)
+#     references_message = []
+#     for mail_uid_reference, msg_data_reference, option_reference in zip(references_uids,
+#                                                                         msg_data_referances,
+#                                                                         options_references):
+#         # print('msg_data_reference', msg_data_reference, option_reference)
+#         message_reference = email.message_from_bytes(msg_data_reference)
+#         # subject_reference = await get_decode_header_subject(message_reference)
+#         message_reference_id = message_reference.get("Message-ID", "").strip('<>')
+#         # mail_uid_reference.append(mail_uid_reference)
+#         message = {
+#             "uid": mail_uid_reference,
+#             "message_id": message_reference_id,
+#             "from": message_reference["From"] if message_reference["From"] else '',
+#             "to": message_reference['To'].split(',') if message_reference['To'] else '',
+#             "subject": await get_decode_header_subject(message_reference),
+#             "date": message_reference["Date"] if message_reference["Date"] else '',
+#             "is_read": True if mail_uid_reference not in mails_uids_unseen else False,
+#             # "mails_referance": [],
+#             "flags": option_reference['flags'] if mail_uid_reference == option_reference['uid'] else False,
+#             "attachments": option_reference['attachments'] if mail_uid_reference == option_reference[
+#                 'uid'] else [],
+#         }
+#         references_message.append(message)
+#     return references_message
