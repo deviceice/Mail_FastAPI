@@ -24,7 +24,6 @@ async def lifespan(_app: FastAPI):
         yield
     except Exception as e:
         logger.error(f"Не удалось подключиться к бд чтобы создать таблицы   {e}")
-        yield
     finally:
         logger.success("Работа Почтового сервера завершена!")
         # await redis.close()

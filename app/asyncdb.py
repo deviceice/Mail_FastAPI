@@ -24,10 +24,6 @@ def asyncpg_url(header_name_in_config) -> MultiHostUrl:
         raise ValueError(f"Invalid database configuration: {e}") from e
 
 
-class AsyncDBConnectionError(Exception):
-    Session_db_error = 'Session error'
-
-
 class AsyncDB:
     def __init__(self):
         self.engine = None
