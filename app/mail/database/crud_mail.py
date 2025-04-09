@@ -1,5 +1,5 @@
 # Запросы в БД на этапе разработки
-from app.mail.database.models_mail import *
+from mail.database.models_mail import *
 
 
 # Test корректной работы сессии
