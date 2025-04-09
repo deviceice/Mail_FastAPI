@@ -1,26 +1,31 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateSchema
 from mail.database.models_mail import *
 from loguru import logger
 from asyncdb import AsyncDB
+from typing import AsyncGenerator, Optional
+from app.asyncdb import AsyncDBConnectionError
 
 async_db_mail = AsyncDB()
 
 
 @asynccontextmanager
-async def get_session() -> AsyncGenerator:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    session: Optional[AsyncSession] = None
     try:
-        async with async_db_mail.AsyncSessionFactory() as session:
-            logger.info(f"ASYNC Pool mail: {async_db_mail.engine.pool.status()}")
-            try:
-                yield session
-            except Exception as e:
-                logger.error(f"Ошибка session_db mail: {e}")
-                raise
+        async with async_db_mail.get_asyncSessionFactory() as session:
+            logger.debug(f"Pool status: {async_db_mail.get_engine.pool.status()}")
+            yield session
     except Exception as e:
-        logger.critical(f"Не удалось подключиться к DB mail:{e}")
-        yield session
+        logger.error(f"Ошибка сессии: {e}")
+        if session:
+            await session.rollback()
+        raise AsyncDBConnectionError.Session_db_error from e
+    finally:
+        if session:
+            await session.close()
 
 
 async def create_tables_mail():
@@ -39,4 +44,3 @@ async def create_tables_mail():
         except sqlalchemy.exc.DBAPIError:
             # logger.success("Таблицы для mail уже существуют")
             pass
-

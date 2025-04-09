@@ -1,3 +1,4 @@
+from loguru import logger
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from pydantic_core import MultiHostUrl
@@ -9,14 +10,22 @@ settings = Settings()
 def asyncpg_url(header_name_in_config) -> MultiHostUrl:
     settings.open_conf()
     config = settings.get_conf()
-    return MultiHostUrl.build(
-        scheme="postgresql+asyncpg",
-        username=config[header_name_in_config]['user'],
-        password=config[header_name_in_config]['passowrd'],
-        host=config[header_name_in_config]['ip_db'],
-        port=int(config[header_name_in_config]['port_db']),
-        path=config[header_name_in_config]['name_db'],
-    )
+    try:
+        return MultiHostUrl.build(
+            scheme="postgresql+asyncpg",
+            username=config[header_name_in_config]['user'],
+            password=config[header_name_in_config]['password'],
+            host=config[header_name_in_config]['ip_db'],
+            port=int(config[header_name_in_config]['port_db']),
+            path=config[header_name_in_config]['name_db'],
+        )
+    except KeyError as e:
+        logger.error(f"Отсутствует ключ в конфигурации: {e}")
+        raise ValueError(f"Invalid database configuration: {e}") from e
+
+
+class AsyncDBConnectionError(Exception):
+    Session_db_error = 'Session error'
 
 
 class AsyncDB:
@@ -32,7 +41,7 @@ class AsyncDB:
         self.engine = create_async_engine(asyncpg_url(header_name_in_config).unicode_string(),
                                           pool_size=20,
                                           max_overflow=0,
-                                          pool_pre_ping=False,
+                                          pool_pre_ping=True,
                                           future=True,
                                           echo=False)
 
