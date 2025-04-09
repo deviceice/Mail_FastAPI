@@ -1,11 +1,9 @@
 from mail.support_func_API.support_func import *
-import chardet
-import binascii
-import email
 from email import policy
 from email.parser import BytesParser
 import base64
 import quopri
+import re
 
 
 async def get_email_body_test(response):

@@ -1,5 +1,5 @@
 from mail.support_func_API.support_func import *
-import email
+import re
 
 
 async def get_elements_inbox_uid(arr, last_uid=None, limit=20):

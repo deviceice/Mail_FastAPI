@@ -1,10 +1,8 @@
-import time
-
-from mail.support_func_API.support_func import *
+from mail.schemas.request.schemas_mail import EmailSend
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
-from email import encoders, policy
+from email import encoders
 import base64
 
 
