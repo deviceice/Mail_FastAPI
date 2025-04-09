@@ -23,7 +23,7 @@ async def create_email_with_attachments(email: EmailSend):
     message["From"] = "user@mail.palas"  # Жестко для теста
     message["To"] = email.to if isinstance(email.to, str) else ", ".join(email.to)
     message["Subject"] = email.subject
-    message["References"] = f'<{email.referance}>' if email.referance else None
+    message["References"] = f'<{email.reference}>' if email.reference else None
     message.attach(MIMEText(email.body, "plain"))
     for attachment in email.attachments:
         part = MIMEBase("application", "octet-stream")

@@ -1,14 +1,6 @@
 import base64
-import binascii
-import re
-
-from email import encoders
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
 
 from email.header import decode_header
-from mail.schemas.request_schemas import *
 
 
 async def format_size(size_bytes):

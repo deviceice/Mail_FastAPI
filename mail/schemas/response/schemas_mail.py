@@ -1,6 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Union, Optional, List, Dict, Sequence
-
 from pydantic import BaseModel
 
 

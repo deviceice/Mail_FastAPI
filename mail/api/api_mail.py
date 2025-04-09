@@ -1,14 +1,14 @@
 import asyncio
 
-from fastapi import (APIRouter, Request, HTTPException, Response, BackgroundTasks, Depends, Query)
+from fastapi import (APIRouter, HTTPException, Response, BackgroundTasks, Depends, Query)
 from fastapi.responses import StreamingResponse
 from starlette import status as status_code
 
 from mail.imap_smtp_connect.imap_connection import get_imap_connection
 from mail.imap_smtp_connect.smtp_connection import get_smtp_connection
 from mail.support_func_API import *
-from mail.schemas.request_schemas import *
-from mail.schemas.response_schemas import *
+from mail.schemas.request.schemas_mail import *
+from mail.schemas.response.schemas_mail import *
 from mail.schemas.tags_api import tags_description_api
 from mail.example_schemas.response_schemas_examples import *
 from mail.example_schemas.request_schemas_examples import *

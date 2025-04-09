@@ -11,7 +11,7 @@ class EmailSend(BaseModel):
     to: Union[EmailStr, Sequence[EmailStr]]
     subject: str
     body: str
-    referance: Optional[str] = None
+    reference: Optional[str] = None
     attachments: List[Attachment] = []
 
 
