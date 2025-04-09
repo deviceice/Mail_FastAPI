@@ -6,7 +6,6 @@ from mail.database.models_mail import *
 from loguru import logger
 from asyncdb import AsyncDB
 from typing import AsyncGenerator, Optional
-from app.asyncdb import AsyncDBConnectionError
 
 async_db_mail = AsyncDB()
 
@@ -15,14 +14,13 @@ async_db_mail = AsyncDB()
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     session: Optional[AsyncSession] = None
     try:
-        async with async_db_mail.get_asyncSessionFactory() as session:
-            logger.debug(f"Pool status: {async_db_mail.get_engine.pool.status()}")
+        async with async_db_mail.AsyncSessionFactory() as session:
+            logger.debug(f"Pool status: {async_db_mail.engine.pool.status()}")
             yield session
     except Exception as e:
         logger.error(f"Ошибка сессии: {e}")
         if session:
             await session.rollback()
-        raise AsyncDBConnectionError.Session_db_error from e
     finally:
         if session:
             await session.close()
