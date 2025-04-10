@@ -33,7 +33,8 @@ async def clear_bytes_in_message(message):
 
     flags_pattern = re.compile(rb'(\d+) FETCH \(UID (\d+) FLAGS \((.*?)\) RFC822\.HEADER')
     attachment_pattern = re.compile(
-        rb'\(["\']?attachment["\']?\s+\(["\']?filename["\']?\s+["\']([^"\']+)["\']\s+["\']?size["\']?\s+["\']?(\d+)["\']?\)')
+        rb'\(["\']?attachment["\']?\s+\(["\']?filename["\']?\s+["\']([^"\']+)["\']\s+["\']?size["\']?\s+["\']?(\d+)['
+        rb'"\']?\)')
 
     for i in range(0, len(message), 3):
         metadata = message[i]
@@ -67,6 +68,27 @@ async def clear_bytes_in_message(message):
         data_flags_attachment.append(message_dict)
     return headers_data, data_flags_attachment
 
+
+async def get_mails_uids(messages, messages_unseen):
+    mails_uids = messages[0].decode().split()
+    total_message = len(mails_uids)
+    mails_uids_unseen = set(messages_unseen[0].decode().split())
+    return mails_uids, mails_uids_unseen, total_message
+
+
+async def get_message_struct(mail_uid, mails_uids_unseen, message, options):
+    return {
+        "uid": mail_uid,
+        "message_id": message.get("Message-ID", "").strip('<>'),
+        "from": message["From"] if message["From"] else '',
+        "to": message['To'].split(',') if message['To'] else '',
+        "subject": await get_decode_header_subject(message),
+        "date": message["Date"] if message["Date"] else '',
+        "is_read": True if mail_uid not in mails_uids_unseen else False,
+        "flags": options['flags'] if mail_uid == options['uid'] else False,
+        "attachments": options['attachments'] if mail_uid == options['uid'] else [],
+        "mails_referance": [],
+    }
 
 # async def get_references(imap, message_id: str, mails_uids_unseen: list) -> list:
 #     search_criteria = f'HEADER References "{message_id}"'

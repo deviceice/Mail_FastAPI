@@ -11,7 +11,7 @@ from mail.schemas.tags_api import tags_metadata
 
 # редис для авторизации в разработке
 async def lifespan(_app: FastAPI):
-    logger.success('_______________________________________________________________________________________________')
+    logger.success('____________________________')
     logger.success('Запускается Почтовый сервер')
     # redis = Redis.from_url("redis://localhost:6379", decode_responses=True)
     # _app.state.redis = redis

@@ -32,41 +32,33 @@ api_v1 = APIRouter(prefix="/api/v1")
 async def emails(
         mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
         limit: Optional[int] = Query(20, description="Количество писем для получения (от 1 до 100)",
-                                     ge=1, le=500),
+                                     ge=1, le=100),
         last_uid: Optional[str] = Query(None,
                                         description="Последний UID письма, после которого прислать следующие письма"),
         imap=Depends(get_imap_connection)):  # session: AsyncSession = Depends(get_session)
 
-    # ТЕСТИРОВАНИЕ
-    # settings: Settings = Depends(get_settings) Асинхронное использование Settings
-
     try:
         status, response = await imap.list('""', '"*"')
-    except asyncio.exceptions.TimeoutError:
-        raise HttpExceptionMail.IMAP_TIMEOUT_504
-    all_folders: Optional[list[str]] = await parse_folders(response) if status == 'OK' else None
-    folder = await encode_name_utf7_ascii(mbox)
-    try:
+        if status != 'OK':
+            raise HttpExceptionMail.FOLDER_NOT_FOUND_404
+        all_folders: Optional[list[str]] = await parse_folders(response) if status == 'OK' else None
+        folder = await encode_name_utf7_ascii(mbox)
         status, response = await imap.select(folder)
+        if status != 'OK':
+            raise HttpExceptionMail.FOLDER_NOT_FOUND_404
     except asyncio.exceptions.TimeoutError:
         raise HttpExceptionMail.IMAP_TIMEOUT_504
+
     if status != 'OK':
         raise HttpExceptionMail.FOLDER_NOT_FOUND_404
     status_all, messages = await imap.uid_search("ALL")
     status_unread, messages_unseen = await imap.uid_search("UNSEEN")
-    # print(status_test, messages_test)
     # status_recent, messages_recent = await imap.uid_search("RECENT")
-    # print(status_recent, messages_recent)
     # status, response = await imap.status(folder, '(MESSAGES UNSEEN RECENT)')
-    # print(status, response)
     if status_all != 'OK' and status_unread != 'OK':
         await imap.close()
         raise HttpExceptionMail.IMAP_TIMEOUT_504
-    mails_uids = messages[0].decode().split()
-    total_message = len(mails_uids)
-    mails_uids_unseen = set(messages_unseen[0].decode().split())
-    # mails_uids_recent = messages_recent[0].decode().split()
-    # print(mails_uids, mails_uids_unseen, mails_uids_recent)
+    mails_uids, mails_uids_unseen, total_message = await get_mails_uids(messages, messages_unseen)
     mails_uids = await get_elements_inbox_uid(mails_uids, last_uid, limit if limit is not None else 20)
     if not mails_uids:
         return {'status': False, 'total_message': total_message, 'folders': all_folders, 'emails': []}
@@ -77,12 +69,83 @@ async def emails(
 
     emails_list = []
     msg_data, options_message = await clear_bytes_in_message(msg_data_bytes)
-
-    id_message_main_reference = set()
-
+    # id_message_main_reference = set()
     for mail_uid, message, options in zip(mails_uids, msg_data, options_message):
         message = email.message_from_bytes(message)
-        # print(message)
+        message_id = message.get("Message-ID", "").strip('<>')
+        if message.get("References", ""):
+            # id_message_main_reference.add(re.findall(r'<([^>]+)>', message.get('References', ""))[0])
+            continue
+        main_message = await get_message_struct(mail_uid, mails_uids_unseen, message, options)
+
+        # Это временное условия для forntend, все вынесется в функцию и изменится получение для сокращения ответа API
+        if mbox == 'INBOX':
+            search_criteria = f'HEADER References "{message_id}"'
+            status_reference, references_data = await imap.uid_search(search_criteria)
+            references_uids = references_data[0].decode().split() if status_reference == 'OK' else []
+            status_message_reference, msg_data_reference_bytes = await imap.uid("FETCH", ",".join(references_uids),
+                                                                                "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
+
+            msg_data_referances, options_references = await clear_bytes_in_message(msg_data_reference_bytes)
+            for mail_uid_reference, msg_data_reference, option_reference in zip(references_uids,
+                                                                                msg_data_referances,
+                                                                                options_references):
+                message_reference = email.message_from_bytes(msg_data_reference)
+                message_reference_id = message_reference.get("Message-ID", "").strip('<>')
+                reference_message = {
+                    "uid": mail_uid_reference,
+                    "message_id": message_reference_id,
+                    "from": message_reference["From"] if message_reference["From"] else '',
+                    "to": message_reference['To'].split(',') if message_reference['To'] else '',
+                    "subject": await get_decode_header_subject(message_reference),
+                    "date": message_reference["Date"] if message_reference["Date"] else '',
+                    "is_read": True if mail_uid_reference not in mails_uids_unseen else False,
+                    "flags": option_reference['flags'] if mail_uid_reference == option_reference['uid'] else False,
+                    "attachments": option_reference['attachments'] if mail_uid_reference == option_reference[
+                        'uid'] else [],
+                }
+                main_message['mails_referance'].append(reference_message)
+        emails_list.append(main_message)
+
+    # new code
+    await imap.close()
+    emails_list.reverse()
+    return {'status': True, 'total_message': total_message, 'folders': all_folders, 'emails': emails_list}
+
+
+@api_v1.get('/new_mails',
+            response_model=GetNewMailsResponse,
+            responses=get_mails_response_example,
+            tags=['Get mails'],
+            summary=tags_description_api['new_mails']['summary'],
+            description=tags_description_api['new_mails']['description']
+            )
+async def new_mails(
+        mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
+        imap=Depends(get_imap_connection)):
+    folder = await encode_name_utf7_ascii(mbox)
+    try:
+        status, response = await imap.select(folder)
+    except asyncio.exceptions.TimeoutError:
+        raise HttpExceptionMail.IMAP_TIMEOUT_504
+    if status != 'OK':
+        raise HttpExceptionMail.FOLDER_NOT_FOUND_404
+    status_recent, messages_recent = await imap.uid_search("RECENT")
+    if status_recent != 'OK':
+        await imap.close()
+        raise HttpExceptionMail.IMAP_TIMEOUT_504
+    mails_uids_recents = messages_recent[0].decode().split()
+    total_message_recent = len(mails_uids_recents)
+    status, msg_data_bytes = await imap.uid("FETCH", ",".join(mails_uids_recents),
+                                            "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
+    if status != 'OK':
+        await imap.close()
+        return {'status': False, 'total_message': total_message_recent, 'emails': []}
+    emails_list = []
+    msg_data, options_messages = await clear_bytes_in_message(msg_data_bytes)
+
+    for mail_uid, message, options in zip(mails_uids_recents, msg_data, options_messages):
+        message = email.message_from_bytes(message)
         message_id = message.get("Message-ID", "").strip('<>')
         # if message.get("References", ""):
         #     id_message_main_reference.add(re.findall(r'<([^>]+)>', message.get('References', ""))[0])
@@ -95,48 +158,17 @@ async def emails(
             "to": message['To'].split(',') if message['To'] else '',
             "subject": await get_decode_header_subject(message),
             "date": message["Date"] if message["Date"] else '',
-            "is_read": True if mail_uid not in mails_uids_unseen else False,
+            "is_read": False,
             "flags": options['flags'] if mail_uid == options['uid'] else False,
             "attachments": options['attachments'] if mail_uid == options['uid'] else [],
             "mails_referance": [],
         }
-        # if mbox == 'INBOX':
-        #     search_criteria = f'HEADER References "{message_id}"'
-        #     status_reference, references_data = await imap.uid_search(search_criteria)
-        #     references_uids = references_data[0].decode().split() if status_reference == 'OK' else []
-        #     status_message_reference, msg_data_reference_bytes = await imap.uid("FETCH", ",".join(references_uids),
-        #                                                                         "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
-        #
-        #     msg_data_referances, options_references = await clear_bytes_in_message(msg_data_reference_bytes)
-        #     # references_message = []
-        #     for mail_uid_reference, msg_data_reference, option_reference in zip(references_uids,
-        #                                                                         msg_data_referances,
-        #                                                                         options_references):
-        #         # print('msg_data_reference', msg_data_reference, option_reference)
-        #         message_reference = email.message_from_bytes(msg_data_reference)
-        #         # subject_reference = await get_decode_header_subject(message_reference)
-        #         message_reference_id = message_reference.get("Message-ID", "").strip('<>')
-        #         # mail_uid_reference.append(mail_uid_reference)
-        #         reference_message = {
-        #             "uid": mail_uid_reference,
-        #             "message_id": message_reference_id,
-        #             "from": message_reference["From"] if message_reference["From"] else '',
-        #             "to": message_reference['To'].split(',') if message_reference['To'] else '',
-        #             "subject": await get_decode_header_subject(message_reference),
-        #             "date": message_reference["Date"] if message_reference["Date"] else '',
-        #             "is_read": True if mail_uid_reference not in mails_uids_unseen else False,
-        #             # "mails_referance": [],
-        #             "flags": option_reference['flags'] if mail_uid_reference == option_reference['uid'] else False,
-        #             "attachments": option_reference['attachments'] if mail_uid_reference == option_reference[
-        #                 'uid'] else [],
-        #         }
-        #         main_message['mails_referance'].append(reference_message)
         emails_list.append(main_message)
 
     # new code
     await imap.close()
     emails_list.reverse()
-    return {'status': True, 'total_message': total_message, 'folders': all_folders, 'emails': emails_list}
+    return {'status': True, 'total_message': total_message_recent, 'emails': emails_list}
 
 
 @api_v1.post("/send_mail",

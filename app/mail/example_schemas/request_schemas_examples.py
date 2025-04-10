@@ -9,7 +9,7 @@ send_mail_request_example = {
                             "to": "user@mail.palas",
                             "subject": "Отправляю письмо посмотрите",
                             "body": "Отправляю письмо посмотрите",
-                            "referance": '',
+                            "reference": '',
                             "attachments": []
                         }
                     },
@@ -19,7 +19,7 @@ send_mail_request_example = {
                             "to": "user@mail.palas",
                             "subject": "Присылаю вам файл",
                             "body": "Отправляю файл sources.list посмотрите",
-                            "referance": '',
+                            "reference": '',
                             "attachments": [{
                                 "filename": "sources.list",
                                 "file": "I2RlYiBjZHJvbTpbT1MgQXN0cmEgTGludXggMS41IHNtb2xlbnNrIC0gYW1kNjQgRFZEIF0vIHNtb2xlbnNrIGNvbnRyaWIgbWFpbiBub24tZnJlZSAKCmRlYiBmaWxlOi8vL3JlcGEvZGlzazEvIHNtb2xlbnNrIGNvbnRyaWIgbWFpbiBub24tZnJlZQpkZWIgZmlsZTovLy9yZXBhL2Rpc2syLyBzbW9sZW5zayBjb250cmliIG1haW4gbm9uLWZyZWUK"
@@ -36,7 +36,7 @@ send_mail_request_example = {
                             "to": ["user@mail.palas", "user1@mail.palas", "user2@mail.palas"],
                             "subject": "Пример письма на несколько почтовых ящиков",
                             "body": "Отправляю письмо посмотрите",
-                            "referance": '',
+                            "reference": '',
                             "attachments": []
                         }
                     },
@@ -46,7 +46,7 @@ send_mail_request_example = {
                             "to": "user@mail.palas",
                             "subject": "Ответ: Привет",
                             "body": "Отправляю письмо посмотрите",
-                            "referance": "a28f777575be3a9440bcf61250d32b4a@mail.palas",
+                            "reference": "a28f777575be3a9440bcf61250d32b4a@mail.palas",
                             "attachments": []
                         }
                     }

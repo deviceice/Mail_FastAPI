@@ -41,6 +41,12 @@ class GetMailsResponse(BaseModel):
     emails: List[Email] = []
 
 
+class GetNewMailsResponse(BaseModel):
+    status: bool
+    total_message: int = 0
+    emails: List[Email] = []
+
+
 class BodyResponse(BaseModel):
     status: bool
     uid: str
