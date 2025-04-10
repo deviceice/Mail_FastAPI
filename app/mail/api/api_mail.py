@@ -145,18 +145,7 @@ async def new_mails(
     for mail_uid, message, options in zip(mails_uids_recents, msg_data, options_messages):
         message = email.message_from_bytes(message)
         # message_id = message.get("Message-ID", "").strip('<>')
-        main_message = {
-            "uid": mail_uid,
-            "message_id": message.get("Message-ID", "").strip('<>'),
-            "from": message["From"] if message["From"] else '',
-            "to": message['To'].split(',') if message['To'] else '',
-            "subject": await get_decode_header_subject(message),
-            "date": message["Date"] if message["Date"] else '',
-            "is_read": False,
-            "flags": options['flags'] if mail_uid == options['uid'] else False,
-            "attachments": options['attachments'] if mail_uid == options['uid'] else [],
-            "mails_referance": [],
-        }
+        main_message = await get_new_message_struct(mail_uid, message, options)
         emails_list.append(main_message)
 
     # new code
