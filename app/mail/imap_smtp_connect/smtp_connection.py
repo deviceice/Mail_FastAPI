@@ -32,14 +32,14 @@ class SMTPPool:
                 timed_conn = TimedConnection(smtp)
             else:
                 timed_conn = await pool.get()
-                if timed_conn.is_expired(self.expiry_seconds) or not await timed_conn.connection.is_connected:
+                if timed_conn.is_expired(self.expiry_seconds) or not timed_conn.connection.is_connected:
                     logger.warning("Соединение устарело или неактивно. Пересоздаем...")
                     # await self._close_connection(timed_conn.connection)
                     smtp = await self._create_smtp_connection(user, password)
                     timed_conn = TimedConnection(smtp)
                 else:
                     smtp = timed_conn.connection
-                if not await smtp.connection.is_connected:
+                if not smtp.is_connected:
                     raise HttpExceptionMail.SMTP_TIMEOUT_504
 
             yield smtp
