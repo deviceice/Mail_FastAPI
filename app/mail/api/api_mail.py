@@ -49,8 +49,6 @@ async def emails(
     except asyncio.exceptions.TimeoutError:
         raise HttpExceptionMail.IMAP_TIMEOUT_504
 
-    if status != 'OK':
-        raise HttpExceptionMail.FOLDER_NOT_FOUND_404
     status_all, messages = await imap.uid_search("ALL")
     status_unread, messages_unseen = await imap.uid_search("UNSEEN")
     # status_recent, messages_recent = await imap.uid_search("RECENT")
@@ -58,7 +56,7 @@ async def emails(
     if status_all != 'OK' and status_unread != 'OK':
         await imap.close()
         raise HttpExceptionMail.IMAP_TIMEOUT_504
-    mails_uids, mails_uids_unseen, total_message = await get_mails_uids(messages, messages_unseen)
+    mails_uids, mails_uids_unseen, total_message = await get_mails_uids_unseen(messages, messages_unseen)
     mails_uids = await get_elements_inbox_uid(mails_uids, last_uid, limit if limit is not None else 20)
     if not mails_uids:
         return {'status': False, 'total_message': total_message, 'folders': all_folders, 'emails': []}
@@ -134,8 +132,8 @@ async def new_mails(
     if status_recent != 'OK':
         await imap.close()
         raise HttpExceptionMail.IMAP_TIMEOUT_504
-    mails_uids_recents = messages_recent[0].decode().split()
-    total_message_recent = len(mails_uids_recents)
+
+    mails_uids_recents, total_message_recent = await get_mails_uids_recent(messages_recent)
     status, msg_data_bytes = await imap.uid("FETCH", ",".join(mails_uids_recents),
                                             "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
     if status != 'OK':
@@ -146,14 +144,10 @@ async def new_mails(
 
     for mail_uid, message, options in zip(mails_uids_recents, msg_data, options_messages):
         message = email.message_from_bytes(message)
-        message_id = message.get("Message-ID", "").strip('<>')
-        # if message.get("References", ""):
-        #     id_message_main_reference.add(re.findall(r'<([^>]+)>', message.get('References', ""))[0])
-        #     continue
-
+        # message_id = message.get("Message-ID", "").strip('<>')
         main_message = {
             "uid": mail_uid,
-            "message_id": message_id,
+            "message_id": message.get("Message-ID", "").strip('<>'),
             "from": message["From"] if message["From"] else '',
             "to": message['To'].split(',') if message['To'] else '',
             "subject": await get_decode_header_subject(message),
