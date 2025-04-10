@@ -1,5 +1,6 @@
-from mail.support_func_API.support_func import *
 import re
+from mail.support_func_API.support_func import *
+from typing import Union, Optional, List, Dict, Sequence
 
 
 async def get_elements_inbox_uid(arr, last_uid=None, limit=20):
@@ -69,7 +70,7 @@ async def clear_bytes_in_message(message):
     return headers_data, data_flags_attachment
 
 
-async def get_mails_uids(messages, messages_unseen):
+async def get_mails_uids_unseen(messages, messages_unseen):
     mails_uids = messages[0].decode().split()
     total_message = len(mails_uids)
     mails_uids_unseen = set(messages_unseen[0].decode().split())
