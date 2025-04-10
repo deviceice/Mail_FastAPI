@@ -48,9 +48,7 @@ async def emails(
             raise HttpExceptionMail.FOLDER_NOT_FOUND_404
     except asyncio.exceptions.TimeoutError:
         raise HttpExceptionMail.IMAP_TIMEOUT_504
-
-    if status != 'OK':
-        raise HttpExceptionMail.FOLDER_NOT_FOUND_404
+    
     status_all, messages = await imap.uid_search("ALL")
     status_unread, messages_unseen = await imap.uid_search("UNSEEN")
     # status_recent, messages_recent = await imap.uid_search("RECENT")
