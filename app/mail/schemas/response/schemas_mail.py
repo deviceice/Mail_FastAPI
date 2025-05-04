@@ -31,7 +31,7 @@ class Email(BaseModel):
     is_read: bool
     flags: bool
     attachments: List[Attachment] = []
-    mails_referance: List[EmailReferense] = []
+    mails_reference: List[EmailReferense] = []
 
 
 class GetMailsResponse(BaseModel):

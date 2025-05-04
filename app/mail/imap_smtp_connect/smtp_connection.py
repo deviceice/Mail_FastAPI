@@ -9,7 +9,7 @@ from starlette import status as status_code
 from collections import defaultdict
 from loguru import logger
 
-from mail.http_exception.default_exception import HttpExceptionMail
+from mail.http_exception.default_exception import HTTPExceptionMail
 from mail.setting_mail_server.settings_server import SettingsServer
 from mail.imap_smtp_connect.timed_connection import TimedConnection
 
@@ -40,7 +40,7 @@ class SMTPPool:
                 else:
                     smtp = timed_conn.connection
                 if not smtp.is_connected:
-                    raise HttpExceptionMail.SMTP_TIMEOUT_504
+                    raise HTTPExceptionMail.SMTP_TIMEOUT_504
 
             yield smtp
         finally:
@@ -62,16 +62,16 @@ class SMTPPool:
         try:
             await smtp.connect()
             if not smtp.is_connected:
-                raise HttpExceptionMail.SMTP_TIMEOUT_504
+                raise HTTPExceptionMail.SMTP_TIMEOUT_504
 
             status, response = await smtp.login(user, password)
             if response not in ('Authentication succeeded'):
-                raise HttpExceptionMail.NOT_AUTHENTICATED_401
+                raise HTTPExceptionMail.NOT_AUTHENTICATED_401
             else:
                 return smtp
         except Exception as e:
             logger.error(f"Ошибка при создании SMTP соединения: {e}")
-            raise HttpExceptionMail.SMTP_TIMEOUT_504
+            raise HTTPExceptionMail.SMTP_TIMEOUT_504
 
     async def _close_smtp_connection(self, smtp):
         try:

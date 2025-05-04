@@ -88,7 +88,22 @@ async def get_message_struct(mail_uid, mails_uids_unseen, message, options):
         "is_read": True if mail_uid not in mails_uids_unseen else False,
         "flags": options['flags'] if mail_uid == options['uid'] else False,
         "attachments": options['attachments'] if mail_uid == options['uid'] else [],
-        "mails_referance": [],
+        "mails_reference": [],
+    }
+
+
+async def get_message_ref_struct(mail_uid_reference, mails_uids_unseen, message_reference, option_reference):
+    return {
+        "uid": mail_uid_reference,
+        "message_id": message_reference.get("Message-ID", "").strip('<>'),
+        "from": message_reference["From"] if message_reference["From"] else '',
+        "to": message_reference['To'].split(',') if message_reference['To'] else '',
+        "subject": await get_decode_header_subject(message_reference),
+        "date": message_reference["Date"] if message_reference["Date"] else '',
+        "is_read": True if mail_uid_reference not in mails_uids_unseen else False,
+        "flags": option_reference['flags'] if mail_uid_reference == option_reference['uid'] else False,
+        "attachments": option_reference['attachments'] if mail_uid_reference == option_reference[
+            'uid'] else [],
     }
 
 # async def get_references(imap, message_id: str, mails_uids_unseen: list) -> list:

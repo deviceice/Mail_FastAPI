@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from starlette import status as status_code
 
 
-class HttpExceptionMail:
+class HTTPExceptionMail:
     IMAP_TIMEOUT_504 = HTTPException(status_code=status_code.HTTP_504_GATEWAY_TIMEOUT,
                                      detail='Сервер IMAP не ответил')
 
@@ -20,6 +20,9 @@ class HttpExceptionMail:
 
     MESSAGE_NOT_FOUND_404 = HTTPException(status_code=status_code.HTTP_404_NOT_FOUND,
                                           detail=f"Письмо не найдено с таким UID")
+
+    FILE_NOT_FOUND_404 = HTTPException(status_code=status_code.HTTP_404_NOT_FOUND,
+                                       detail=f"Файл не найден с таким номером")
 
     ERROR_CODING_FOLDER_400 = HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST,
                                             detail=f"Ошибка кодирования имени папки")

@@ -10,7 +10,7 @@ class Settings:
 
     def open_conf(self):
         conf_path = os.path.join(os.path.dirname(__file__), "config/config.ini")
-        with open(conf_path, 'r+', encoding='utf-8') as config_file:
+        with open(conf_path, 'r', encoding='utf-8') as config_file:
             self.config.read_file(config_file)
 
     def write_conf(self):
