@@ -34,7 +34,7 @@ get_mails_response_example = {
                                     "size": "34.72 MB"
                                 },
                             ],
-                            "mails_referance": [
+                            "mails_reference": [
                                 {
                                     "uid": "975",
                                     "message_id": "bf75b69ec6546344be86c2aba0a4be56@mail.palas",
@@ -72,7 +72,7 @@ get_mails_response_example = {
                             "subject": "2 files",
                             "date": "Fri, 14 Mar 2025 12:28:47 +0300",
                             "is_read": False,
-                            "mails_referance": [],
+                            "mails_reference": [],
                             "flags": False,
                             "attachments": [
                                 {
@@ -89,7 +89,7 @@ get_mails_response_example = {
                             "subject": "0 files",
                             "date": "Fri, 14 Mar 2025 12:54:11 +0300",
                             "is_read": True,
-                            "mails_referance": [],
+                            "mails_reference": [],
                             "flags": False,
                             "attachments": []
                         },

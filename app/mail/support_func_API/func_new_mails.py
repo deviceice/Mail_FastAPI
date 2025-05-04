@@ -18,5 +18,5 @@ async def get_new_message_struct(mail_uid, message, options):
         "is_read": False,
         "flags": options['flags'] if mail_uid == options['uid'] else False,
         "attachments": options['attachments'] if mail_uid == options['uid'] else [],
-        "mails_referance": [],
+        "mails_reference": [],
     }

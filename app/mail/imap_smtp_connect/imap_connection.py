@@ -6,8 +6,10 @@ from contextlib import asynccontextmanager
 from collections import defaultdict
 from loguru import logger
 from mail.setting_mail_server.settings_server import SettingsServer
-from mail.http_exception.default_exception import HttpExceptionMail
+from mail.http_exception.default_exception import HTTPExceptionMail
 from mail.imap_smtp_connect.timed_connection import TimedConnection
+import ctypes
+import socket
 
 
 # redis: Redis = Depends(lambda: app.state.redis) redis подключение редис
@@ -43,7 +45,7 @@ class IMAPPool:
                     imap = timed_conn.connection
 
             if not await self._is_connection_active(imap):
-                raise HttpExceptionMail.IMAP_TIMEOUT_504
+                raise HTTPExceptionMail.IMAP_TIMEOUT_504
 
             yield imap
 
@@ -70,12 +72,16 @@ class IMAPPool:
             await imap.wait_hello_from_server()
         except Exception as e:
             logger.error(f"Ошибка подключения: {e}")
-            raise HttpExceptionMail.IMAP_TIMEOUT_504
-        status, response = await imap.login(user, password)
+            raise HTTPExceptionMail.IMAP_TIMEOUT_504
+        try:
+            status, response = await imap.login(user, password)
+        except asyncio.exceptions.TimeoutError:
+            raise HTTPExceptionMail.IMAP_TIMEOUT_504
         if status == 'NO':
-            raise HttpExceptionMail.NOT_AUTHENTICATED_401
+            print(status, response)
+            raise HTTPExceptionMail.NOT_AUTHENTICATED_401
         if status != 'OK':
-            raise HttpExceptionMail.IMAP_TOO_MANY_REQUESTS_429
+            raise HTTPExceptionMail.IMAP_TOO_MANY_REQUESTS_429
         return imap
 
     async def _is_connection_active(self, imap) -> bool:
@@ -108,6 +114,8 @@ imap_pool = IMAPPool(expiry_seconds=1800)
 
 async def get_imap_connection():
     # Временное решение пока не поднял REDIS
+    # user = 'user1111@mail.palas'  # test
+    # user = 'user'  # test
     user = 'user'  # test
     password = '12345678'  # test
     async with imap_pool.get_connection(user, password) as imap:
