@@ -9,8 +9,8 @@ from starlette import status as status_code
 from collections import defaultdict
 from loguru import logger
 
-from mail.http_exception.default_exception import HTTPExceptionMail
-from mail.setting_mail_server.settings_server import SettingsServer
+from mail.http_exceptions.default_exception import HTTPExceptionMail
+from mail.settings_mail_servers.settings_server import SettingsServer
 from mail.imap_smtp_connect.timed_connection import TimedConnection
 
 

@@ -1,4 +1,4 @@
-from mail.support_func_API.support_func import *
+from mail.utils_func_API.utils_func import *
 from email import policy
 from email.parser import BytesParser
 import base64

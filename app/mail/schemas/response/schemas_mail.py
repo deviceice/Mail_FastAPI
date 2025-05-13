@@ -23,6 +23,7 @@ class EmailReferense(BaseModel):
 
 class Email(BaseModel):
     uid: str
+    # uid_last_ref: str
     message_id: str
     from_: str = Field(alias="from")
     to: List[str] = []
@@ -31,6 +32,7 @@ class Email(BaseModel):
     is_read: bool
     flags: bool
     attachments: List[Attachment] = []
+    references: str  # if message.get("References", ""):
     mails_reference: List[EmailReferense] = []
 
 

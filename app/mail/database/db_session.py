@@ -29,8 +29,8 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 async def create_tables_mail():
     async with async_db_mail.engine.begin() as conn:
         try:
-            await conn.execute(CreateSchema('mail'))
-            # logger.success('Схема для mail успешно создана!')
+            await conn.execute(CreateSchema('ospo'))
+            # logger.success('Схема для ospo успешно создана!')
         except sqlalchemy.exc.ProgrammingError:
             # logger.success('Схема для mail уже сущесвует!')
             pass

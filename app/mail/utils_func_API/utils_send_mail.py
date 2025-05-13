@@ -1,8 +1,12 @@
+import time
+
 from mail.schemas.request.schemas_mail import EmailSend
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+from email.utils import formatdate
+from datetime import datetime, timezone, timedelta
 import base64
 
 
@@ -17,10 +21,14 @@ async def create_email_with_attachments(email: EmailSend):
     """
     Создает MIMEMultipart сообщение с вложенными attachments либо без них, для отправки почты.
     """
+    date = formatdate(datetime.now(timezone(timedelta(hours=3))).timestamp(), localtime=True)
+    # dt = datetime.now(timezone(timedelta(hours=3)))
+    # rfc2822_date = formatdate(dt.timestamp(), localtime=True)
     message = MIMEMultipart()
     message["From"] = "user@mail.palas"  # Жестко для теста
     message["To"] = email.to if isinstance(email.to, str) else ", ".join(email.to)
     message["Subject"] = email.subject
+    message["Date"] = date
     message["References"] = f'<{email.reference}>' if email.reference else ''
     message.attach(MIMEText(email.body, "plain"))
     for attachment in email.attachments:

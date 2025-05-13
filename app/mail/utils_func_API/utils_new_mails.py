@@ -1,4 +1,4 @@
-from mail.support_func_API import get_decode_header_subject
+from mail.utils_func_API import get_decode_header_subject
 
 
 async def get_mails_uids_recent(messages_recent):
