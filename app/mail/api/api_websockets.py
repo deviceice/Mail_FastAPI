@@ -47,10 +47,11 @@ async def websocket_imap(websocket: WebSocket,
                 )
                 for task in pending:
                     task.cancel()
+
                 if imap_task in done:
                     response = imap_task.result()
                     if response and b'EXISTS' in response[0]:
-                        latest_uid = str(int(response[0].decode().split()[0]) + 1)
+                        latest_uid = str(int(response[0].decode().split()[0]))
                         try:
                             await websocket.send_json(latest_uid)
                         except (WebSocketDisconnect, RuntimeError):
@@ -79,7 +80,6 @@ async def websocket_imap(websocket: WebSocket,
         try:
             if 'imap' in locals() and imap:
                 imap.idle_done()
-                await imap.close()
         except Exception as e:
             pass
             # print(f"Error closing IMAP: {e}")

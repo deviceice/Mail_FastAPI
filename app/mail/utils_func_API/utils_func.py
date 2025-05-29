@@ -48,22 +48,3 @@ async def decode_name_ascii_utf7(name: str) -> str:
 
 async def encode_name_utf7_ascii(name: str) -> str:
     return name.encode('utf-7').decode('ascii')
-
-
-async def get_attachments(message):
-    # Получает из сообщения все attachemnts и возвращает список диктов
-    attachments = []
-    if message.is_multipart():
-        for part in message.walk():
-            content_disposition = part.get("Content-Disposition", "")
-            if "attachment" in content_disposition or "filename" in content_disposition:
-                filename = part.get_filename()
-                if filename:
-                    file_data = part.get_payload(decode=True)
-                    attachments.append({
-                        "filename": filename,
-                        "content_type": part.get_content_type(),
-                        "size": await format_size(len(file_data)),
-                        "data": base64.b64encode(file_data).decode()
-                    })
-    return attachments

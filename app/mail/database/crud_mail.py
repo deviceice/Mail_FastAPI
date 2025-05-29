@@ -14,12 +14,20 @@ async def get_abd_objects(session):
 
 async def get_abd_abonents(session, object_sid):
     async with session as s:
+        query = select(
+            AbdAbonent,
+            AbdObject.name.label("object_name")
+        ).join(
+            AbdObject,
+            AbdAbonent.object_sid == AbdObject.object_sid
+        )
+
+        # Добавляем условие фильтрации, если указан object_sid
         if object_sid is not None:
-            db_data = await s.execute(
-                select(AbdAbonent).where(AbdAbonent.object_sid == object_sid))
-        else:
-            db_data = await s.execute(
-                select(AbdAbonent))
-        db_data = db_data.scalars().all()
-        # print(db_data)
+            query = query.where(AbdAbonent.object_sid == object_sid)
+
+        # Выполняем запрос
+        result = await s.execute(query)
+        db_data = result.all()
+
         return db_data

@@ -133,6 +133,75 @@ get_mails_response_example = {
         }
     }
 }
+get_mail_response_example = {
+    200: {
+        "description": "Пример",
+        "content": {
+            "application/json": {
+                'example': {
+                    "status": True,
+                    "mail":
+                        {
+                            "uid": "967",
+                            "message_id": "a28f777575be3a9440bcf61250d32b4a@mail.palas",
+                            "from": "user@mail.palas",
+                            "to": ["user@mail.palas"],
+                            "subject": "3 files",
+                            "date": "Fri, 14 Mar 2025 12:51:11 +0300",
+                            "is_read": False,
+                            "flags": True,
+                            "attachments": [
+                                {
+                                    "filename": "bespreryivnyiy-gulkiy-shum-eduschego-avtomobilya.mp3",
+                                    "size": "126.78 KB"
+                                },
+                                {
+                                    "filename": "bespreryivnyiy.mp3",
+                                    "size": "34.72 MB"
+                                },
+                            ],
+                            "mails_reference": [],
+
+                        },
+
+                }
+
+            }
+        }
+    },
+    404: {
+        "description": "Если не найдена Папка в почтовом ящике",
+        "content": {
+            "application/json": {
+                'example': {'message': "Папка не найдена в почтовом ящике"}
+            }
+        }
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                'example': {'message': "Сервер IMAP не ответил"}
+            }
+        }
+    }
+}
 body_message_response_example = {
     200: {
         "description": "Ответа на получение тела письма",

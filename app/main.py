@@ -24,23 +24,23 @@ async def lifespan(app: FastAPI):
     redis_pool = None
     try:
         # Создаем пул соединений
-        redis_pool = ConnectionPool(
-            host="20.0.0.130",
-            port=6379,
-            password='12345678',
-            max_connections=20,  # Максимальное количество соединений
-            decode_responses=True,
-            socket_timeout=5,
-            socket_connect_timeout=5,
-            health_check_interval=30
-        )
-
-        # Проверяем подключение
-        async with Redis(connection_pool=redis_pool) as redis_conn:
-            await redis_conn.ping()
-
-        logger.success("Redis пул соединений инициализирован")
-        app.state.redis_pool = redis_pool
+        # redis_pool = ConnectionPool(
+        #     host="20.0.0.123",
+        #     port=6379,
+        #     password='12345678',
+        #     max_connections=20,  # Максимальное количество соединений
+        #     decode_responses=True,
+        #     socket_timeout=5,
+        #     socket_connect_timeout=5,
+        #     health_check_interval=30
+        # )
+        #
+        # # Проверяем подключение
+        # async with Redis(connection_pool=redis_pool) as redis_conn:
+        #     await redis_conn.ping()
+        #
+        # logger.success("Redis пул соединений инициализирован")
+        # app.state.redis_pool = redis_pool
 
         # Инициализация БД
         await async_db_mail.create_eng_session('DB_MAIL')
@@ -55,9 +55,9 @@ async def lifespan(app: FastAPI):
             detail="Не удалось инициализировать сервисы"
         )
     finally:
-        if redis_pool:
-            await redis_pool.disconnect()
-            logger.success("Redis пул соединений закрыт")
+        # if redis_pool:
+        #     await redis_pool.disconnect()
+        #     logger.success("Redis пул соединений закрыт")
         logger.success("Работа Почтового сервера завершена!")
 
 

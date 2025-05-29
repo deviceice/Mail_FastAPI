@@ -11,6 +11,7 @@ from mail.imap_smtp_connect.imap_connection import get_imap_connection
 from mail.imap_smtp_connect.smtp_connection import get_smtp_connection
 from mail.database.db_session import get_session
 from mail.database.crud_mail import *
+from mail.settings_mail_servers.settings_server import SettingsServer
 from mail.utils_func_API import *
 from mail.schemas.request.schemas_mail import *
 from mail.schemas.response.schemas_mail import *
@@ -36,13 +37,18 @@ async def get_objects(session: AsyncSession = Depends(get_session)):  # session:
 
 
 @api_contacts.get('/abonents',
-                  # response_model=GetMailsResponse,
-                  # responses=get_mails_response_example,
                   tags=['Contacts'],
                   summary=tags_description_api['abonents']['summary'],
-                  description=tags_description_api['abonents']['description']
-                  )
-async def get_objects(object_sid: str = Query(None, description="sid объекта", example="1"),
-                      session: AsyncSession = Depends(get_session)):  # session: AsyncSession = Depends(get_session)
+                  description=tags_description_api['abonents']['description'])
+async def get_contacts(object_sid: str = Query(None, description="sid объекта", example="1"),
+                       session: AsyncSession = Depends(get_session)):
     db_data = await get_abd_abonents(session, object_sid)
-    return db_data
+    result = []
+
+    for abonent, object_name in db_data:
+        abonent_dict = abonent.__dict__
+        abonent_dict['email'] = f"{abonent.address}@{abonent.object_sid}.{SettingsServer.DOMAIN_DEFAULT}"
+        abonent_dict['object_name'] = object_name
+        result.append(abonent_dict)
+
+    return result

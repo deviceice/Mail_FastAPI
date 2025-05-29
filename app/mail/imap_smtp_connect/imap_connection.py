@@ -52,6 +52,10 @@ class IMAPPool:
         finally:
             if imap:
                 try:
+                    if imap.get_state() in 'AUTH':
+                        print(imap.get_state())
+                    else:
+                        await imap.close()
                     if await self._is_connection_active(imap):
                         timed_conn.last_used = time.time()
                         await pool.put(timed_conn)
@@ -64,7 +68,7 @@ class IMAPPool:
 
     async def _create_imap_connection(self, user: str, password: str):
         imap = aioimaplib.IMAP4(
-            host=SettingsServer.IMAP_IP,
+            host=SettingsServer.IMAP_HOST,
             port=SettingsServer.IMAP_PORT,
             timeout=self.timeout_connect
         )

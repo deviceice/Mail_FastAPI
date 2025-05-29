@@ -37,6 +37,7 @@ class SMTPPool:
                     # await self._close_connection(timed_conn.connection)
                     smtp = await self._create_smtp_connection(user, password)
                     timed_conn = TimedConnection(smtp)
+                    await pool.put(timed_conn)
                 else:
                     smtp = timed_conn.connection
                 if not smtp.is_connected:
@@ -56,7 +57,7 @@ class SMTPPool:
                     logger.error(f"Ошибка при возврате соединения: {e}")
 
     async def _create_smtp_connection(self, user: str, password: str):
-        smtp = aiosmtplib.SMTP(hostname=SettingsServer.SMTP_IP,
+        smtp = aiosmtplib.SMTP(hostname=SettingsServer.SMTP_HOST,
                                port=SettingsServer.SMTP_PORT,
                                timeout=self.timeout_connect)
         try:

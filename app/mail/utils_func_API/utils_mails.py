@@ -1,6 +1,10 @@
 import re
 from mail.utils_func_API.utils_func import *
 from typing import Union, Optional, List, Dict, Sequence
+from loguru import logger
+from email.utils import decode_rfc2231
+import email
+import urllib.parse
 
 
 async def get_elements_inbox_uid(arr, last_uid=None, limit=20):
@@ -33,19 +37,21 @@ async def clear_bytes_in_message(message):
     message.pop()
 
     flags_pattern = re.compile(rb'(\d+) FETCH \(UID (\d+) FLAGS \((.*?)\) RFC822\.HEADER')
-    attachment_pattern = re.compile(
-        rb'\(["\']?attachment["\']?\s+\(["\']?filename["\']?\s+["\']([^"\']+)["\']\s+["\']?size["\']?\s+["\']?(\d+)['
-        rb'"\']?\)')
 
     for i in range(0, len(message), 3):
         metadata = message[i]
         headers = message[i + 1]
         bodystructure = message[i + 2]
+        bodystructure_str = bodystructure.decode('utf-8')
+        idx = bodystructure_str.find('(')
+        if idx != -1:
+            bodystructure_str = bodystructure_str[idx:]
+
+        parsed_bs = parse_bodystructure(bodystructure_str)
+        attachments = find_attachments(parsed_bs)
         message_dict = {}
         headers_data.append(headers)
         flags_search = flags_pattern.search(metadata)
-        bodystructure_search = attachment_pattern.findall(bodystructure)
-
         if flags_search:
             message_dict['number'] = int(flags_search.group(1))  # Порядковый номер
             message_dict['uid'] = str(flags_search.group(2).decode())  # UID
@@ -56,18 +62,74 @@ async def clear_bytes_in_message(message):
             pass
             # continue
 
-        # если есть вложения, добавит имя, файлы и размер
-        parsed_attachments = []
-        if bodystructure_search:
-            parsed_attachments = [
-                {"filename": filename.decode(), "size": await format_size(int(size.decode()))}
-                for filename, size in bodystructure_search
-            ]
-            message_dict['attachments'] = parsed_attachments
+        if attachments:
+            message_dict['attachments'] = attachments
         else:
-            message_dict['attachments'] = parsed_attachments
+            message_dict['attachments'] = []
         data_flags_attachment.append(message_dict)
     return headers_data, data_flags_attachment
+
+
+def tokenize(s):
+    pattern = r'\(|\)|"[^"]*"|[^\s()]+'
+    tokens = re.findall(pattern, s)
+    return tokens
+
+
+def parse(tokens):
+    token = tokens.pop(0)
+    if token == '(':
+        lst = []
+        while tokens[0] != ')':
+            lst.append(parse(tokens))
+        tokens.pop(0)  # Убираем ')'
+        return lst
+    elif token.startswith('"') and token.endswith('"'):
+        return token[1:-1]
+    elif token == 'NIL':
+        return None
+    else:
+        return token
+
+
+def parse_bodystructure(s):
+    tokens = tokenize(s)
+    return parse(tokens)
+
+
+def find_attachments(bodystructure):
+    attachments = []
+
+    def _walk(node):
+        if isinstance(node, list):
+            # Проверяем, есть ли у части ("attachment" (...))
+            for item in node:
+                if (isinstance(item, list) and len(item) > 0
+                        and item[0] == "attachment"):
+                    params = item[1]
+                    filename = None
+                    size = None
+                    for i in range(0, len(params), 2):
+                        key = params[i]
+                        val = params[i + 1]
+                        if key == "filename*" or key == "filename":
+                            filename = val
+                        elif key == "size":
+                            size = val
+                    if filename is None:
+                        filename_decoded = 'None'
+                    else:
+                        charset, language, encoded_value = decode_rfc2231(filename)
+                        filename_decoded = urllib.parse.unquote(encoded_value)
+                    attachments.append({
+                        "filename": filename_decoded,
+                        "size": str(size) if size else None
+                    })
+                else:
+                    _walk(item)
+
+    _walk(bodystructure)
+    return attachments
 
 
 async def get_mails_uids_unseen(messages, messages_unseen):
@@ -80,19 +142,24 @@ async def get_mails_uids_unseen(messages, messages_unseen):
 async def get_message_struct(mail_uid, mails_uids_unseen, message, options):
     if mails_uids_unseen is None:
         mails_uids_unseen = [mail_uid]
+    try:
+        options_uid = options["uid"]
+    except KeyError:
+        logger.error(f'ОШИБКА С ПИСЬМОМ возможно баг{mail_uid, message, options}')
+        options_uid = '0'
     return {
         "uid": mail_uid,
         # "uid_last_ref": mail_uid,
         "message_id": message.get("Message-ID", "").strip('<>'),
         "from": message["From"] if message["From"] else '',
-        "to": message['To'].split(',') if message['To'] else '',
+        "to": message['To'].split(',') if message['To'] else [],
         "subject": await get_decode_header_subject(message),
         "date": message["Date"] if message["Date"] else '',
         "is_read": True if mail_uid not in mails_uids_unseen else False,
-        "flags": options['flags'] if mail_uid == options['uid'] else False,
-        "attachments": options['attachments'] if mail_uid == options['uid'] else [],
+        "flags": options['flags'] if mail_uid == options_uid else False,
+        "attachments": options['attachments'] if mail_uid == options_uid else [],
         # "references": message['References'] if message['References'] else '',
-        "references":  message.get("References", "").strip('<>'),
+        "references": message.get("References", "").strip('<>'),
         "mails_reference": [],
     }
 
