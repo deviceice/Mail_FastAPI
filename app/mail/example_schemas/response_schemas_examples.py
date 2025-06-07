@@ -6,6 +6,7 @@ get_mails_response_example = {
                 'example': {
                     "status": True,
                     "total_message": 235,
+                    "total_unseen_message": 27,
                     "folders": [
                         "Trash",
                         "АРХИВ",

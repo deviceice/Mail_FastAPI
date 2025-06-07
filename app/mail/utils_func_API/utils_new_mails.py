@@ -13,7 +13,7 @@ async def get_new_message_struct(mail_uid, message, options):
         "message_id": message.get("Message-ID", "").strip('<>'),
         "from": message["From"] if message["From"] else '',
         "to": message['To'].split(',') if message['To'] else '',
-        "subject": await get_decode_header_subject(message),
+        "subject": get_decode_header_subject(message),
         "date": message["Date"] if message["Date"] else '',
         "is_read": False,
         "flags": options['flags'] if mail_uid == options['uid'] else False,

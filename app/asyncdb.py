@@ -35,8 +35,8 @@ class AsyncDB:
 
     async def create_engine(self, header_name_in_config):
         self.engine = create_async_engine(asyncpg_url(header_name_in_config).unicode_string(),
-                                          pool_size=20,
-                                          max_overflow=0,
+                                          pool_size=50,
+                                          max_overflow=10,
                                           pool_pre_ping=True,
                                           future=True,
                                           echo=False)

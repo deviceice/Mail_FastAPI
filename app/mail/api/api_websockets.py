@@ -9,14 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status as status_code
 from starlette.websockets import WebSocketState
 
-from mail.imap_smtp_connect.imap_connection import get_imap_connection
+from mail.imap_smtp_connect.imap_connection import get_imap_connection, get_imap_connection_ws
 from mail.imap_smtp_connect.smtp_connection import get_smtp_connection
 from mail.database.db_session import get_session
 from mail.database.redis_session import get_redis
 from mail.database.crud_mail import *
 from mail.utils_func_API import *
-from mail.schemas.request.schemas_mail import *
-from mail.schemas.response.schemas_mail import *
+from mail.schemas.request.schemas_mail_req import *
+from mail.schemas.response.schemas_mail_res import *
 from mail.schemas.tags_api import tags_description_api
 from mail.example_schemas.response_schemas_examples import *
 from mail.example_schemas.request_schemas_examples import *
@@ -28,10 +28,15 @@ api_ws = APIRouter(prefix="/ws")
 
 @api_ws.websocket("/imap_new_mails")
 async def websocket_imap(websocket: WebSocket,
-                         imap=Depends(get_imap_connection),
+                         #imap=Depends(get_imap_connection),
                          ):
     """WebSocket-эндпоинт для получения новых писем в реальном времени"""
-    await websocket.accept()
+    # await websocket.accept()
+    gen = get_imap_connection_ws(websocket)
+    try:
+        imap = await gen.__anext__()
+    except StopAsyncIteration:
+        return
     connection_active = True
     try:
         await imap.select("INBOX")
@@ -51,7 +56,7 @@ async def websocket_imap(websocket: WebSocket,
                 if imap_task in done:
                     response = imap_task.result()
                     if response and b'EXISTS' in response[0]:
-                        latest_uid = str(int(response[0].decode().split()[0]))
+                        latest_uid = str(response[0].decode().split()[0])
                         try:
                             await websocket.send_json(latest_uid)
                         except (WebSocketDisconnect, RuntimeError):

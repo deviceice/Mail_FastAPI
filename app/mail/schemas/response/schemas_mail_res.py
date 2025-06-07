@@ -4,48 +4,50 @@ from pydantic import BaseModel
 
 
 class Attachment(BaseModel):
-    filename: str
-    size: str
+    filename: Union[str, None]
+    size: Union[str, None]
 
 
 class EmailReferense(BaseModel):
-    uid: str
-    message_id: str
+    uid: Union[str, int]
+    message_id: Union[str, None]
     from_: str = Field(alias="from")
     to: List[str] = []
-    subject: str
-    date: str
+    subject: Union[str, None]
+    date: Union[str, None]
     is_read: bool
     # mails_referance: list[str] = []
     flags: bool
+    references: Union[str, None]
     attachments: List[Attachment] = []
+    mails_reference: list = []
 
 
 class Email(BaseModel):
-    uid: str
-    # uid_last_ref: str
-    message_id: str
+    uid: Union[str, int]
+    message_id: Union[str, None]
     from_: str = Field(alias="from")
     to: List[str] = []
-    subject: str
-    date: str
+    subject: Union[str, None]
+    date: Union[str, None]
     is_read: bool
     flags: bool
     attachments: List[Attachment] = []
-    references: str  # if message.get("References", ""):
+    references: Union[str, None]  # if message.get("References", ""):
     mails_reference: List[EmailReferense] = []
 
 
 class GetMailsResponse(BaseModel):
     status: bool
     total_message: int = 0
+    total_unseen_message: int = 0,
     folders: list[str]
     emails: List[Email] = []
 
 
 class GetNewMailsResponse(BaseModel):
     status: bool
-    total_message: int = 0
+    total_message_recent: int = 0
     emails: List[Email] = []
 
 
@@ -65,12 +67,13 @@ class Default200Response(BaseModel):
     message: str
 
 
-class StatusFolderResponse(BaseModel):
-    messages: int
-    recent: int
-    unseen: int
-
+# class StatusFolderResponse(BaseModel):
+#     messages: int
+#     recent: int
+#     unseen: int
+#
+# class StatusFolder(BaseModel):
 
 class GetMailResponse(BaseModel):
     status: bool
-    mail: Email = {}
+    mail: Optional[Email] = None

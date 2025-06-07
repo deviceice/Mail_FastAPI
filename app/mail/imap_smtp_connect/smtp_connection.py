@@ -1,13 +1,12 @@
 import asyncio
 import time
-
+import base64
 import aiosmtplib
 from typing import Union
 from contextlib import asynccontextmanager
-from fastapi import HTTPException
-from starlette import status as status_code
 from collections import defaultdict
 from loguru import logger
+from fastapi import Request, HTTPException, status
 
 from mail.http_exceptions.default_exception import HTTPExceptionMail
 from mail.settings_mail_servers.settings_server import SettingsServer
@@ -81,12 +80,17 @@ class SMTPPool:
             logger.error(f"Ошибка при закрытии: {e}")
 
 
-
 smtp_pool = SMTPPool(expiry_seconds=1800)
 
 
-async def get_smtp_connection():
-    user = 'user'  # test
-    password = '12345678'  # test
-    async with smtp_pool.get_connection(user, password) as smtp:
+async def get_smtp_connection(request: Request):
+    auth_header = request.headers.get("authorization")
+    encoded_credentials = auth_header.split(" ")[1]
+    decoded_bytes = base64.b64decode(encoded_credentials)
+    decoded_credentials = decoded_bytes.decode("utf-8")
+    try:
+        username, password = decoded_credentials.split(":", 1)
+    except ValueError:
+        raise HTTPExceptionMail.NOT_AUTHENTICATED_401
+    async with smtp_pool.get_connection(username, password) as smtp:
         yield smtp

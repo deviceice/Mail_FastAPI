@@ -6,7 +6,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
-from mail.schemas.request.schemas_mail import EmailSend
+from mail.schemas.request.schemas_mail_req import EmailSend
 import mimetypes
 
 
@@ -24,7 +24,7 @@ async def append_inbox_message_in_drafts(message, imap):
     await imap.append(message_bytes=message.as_bytes(), mailbox='Drafts', flags='\\Seen', )
 
 
-async def create_email_with_attachments(email: EmailSend):
+async def create_email_with_attachments(email: EmailSend, from_user):
     """
     Создает MIME-сообщение с вложениями, если они есть, или без них.
     """
@@ -37,7 +37,7 @@ async def create_email_with_attachments(email: EmailSend):
         message = MIMEText(email.body, "plain")
 
     date = formatdate(datetime.now(timezone(timedelta(hours=3))).timestamp(), localtime=True)
-    message["From"] = "user@mail.palas"
+    message["From"] = from_user
     message["To"] = email.to if isinstance(email.to, str) else ", ".join(email.to)
     message["Subject"] = f'{email.subject}' if email.subject else ''
     message["Date"] = date

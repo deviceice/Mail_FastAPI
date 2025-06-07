@@ -29,18 +29,19 @@ class GetBodyMessage(BaseModel):
     uid: str
 
 
-class MoveEmails(BaseModel):
+class MoveMails(BaseModel):
     source_folder: str
     target_folder: str
     uid: Union[str, List[str]]
 
 
-class CopyEmails(BaseModel):
+class CopyMails(BaseModel):
     source_folder: str
     target_folder: str
     uid: Union[str, List[str]]
 
 
-class UidsMails(BaseModel):
+class DeleteMails(BaseModel):
+    mbox: str
     uids: Optional[List[str]] = None
     clear_all_trash: Optional[bool] = None

@@ -3,9 +3,12 @@ from loguru import logger
 from redis.asyncio import Redis, ConnectionPool
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Request, Depends, status
+from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.decorator import cache
 
 from mail.database.db_session import create_tables_mail
 from mail.api.api_mail import api_v1
@@ -15,32 +18,36 @@ from mail.database.db_session import async_db_mail
 from mail.schemas.tags_api import tags_metadata
 
 
-#редис для авторизации в разработке
+# редис для авторизации в разработке
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.success('____________________________')
     logger.success('Запускается Почтовый сервер')
 
     redis_pool = None
+    redis_client = None
     try:
         # Создаем пул соединений
-        # redis_pool = ConnectionPool(
-        #     host="20.0.0.123",
-        #     port=6379,
-        #     password='12345678',
-        #     max_connections=20,  # Максимальное количество соединений
-        #     decode_responses=True,
-        #     socket_timeout=5,
-        #     socket_connect_timeout=5,
-        #     health_check_interval=30
-        # )
-        #
-        # # Проверяем подключение
-        # async with Redis(connection_pool=redis_pool) as redis_conn:
-        #     await redis_conn.ping()
-        #
-        # logger.success("Redis пул соединений инициализирован")
-        # app.state.redis_pool = redis_pool
+        redis_pool = ConnectionPool(
+            host="20.0.0.123",
+            port=6379,
+            password='12345678',
+            max_connections=500,  # Максимальное количество соединений
+            socket_timeout=5,
+            decode_responses=False,
+            socket_connect_timeout=5,
+            health_check_interval=30
+        )
+
+        # Проверяем подключение
+        async with Redis(connection_pool=redis_pool) as redis_conn:
+            await redis_conn.ping()
+
+        redis_client = Redis(connection_pool=redis_pool)
+        FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")
+
+        logger.success("Redis пул соединений инициализирован")
+        app.state.redis_pool = redis_pool
 
         # Инициализация БД
         await async_db_mail.create_eng_session('DB_MAIL')
@@ -55,59 +62,17 @@ async def lifespan(app: FastAPI):
             detail="Не удалось инициализировать сервисы"
         )
     finally:
-        # if redis_pool:
-        #     await redis_pool.disconnect()
-        #     logger.success("Redis пул соединений закрыт")
+        if redis_pool:
+            await redis_pool.disconnect()
+            logger.success("Redis пул соединений закрыт")
         logger.success("Работа Почтового сервера завершена!")
 
-
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     logger.success('____________________________')
-#     logger.success('Запускается Почтовый сервер')
-#
-#     # Инициализация Redis
-#     redis_conn = None
-#     try:
-#         # Подключение к Redis
-#         redis_conn = Redis.Redis(
-#             host="20.0.0.130",
-#             port=6379,
-#             password='12345678',
-#             decode_responses=True,
-#             socket_timeout=5,
-#             socket_connect_timeout=5,
-#             health_check_interval=30  # проверка соединения каждые 30 секунд
-#         )
-#
-#         # Проверка подключения
-#         await redis_conn.ping()
-#         logger.success("Подключение к Redis установлено")
-#         app.state.redis = redis_conn
-#
-#         # Инициализация БД
-#         await async_db_mail.create_eng_session('DB_MAIL')
-#         logger.success("Подключение к БД установлено")
-#
-#         yield
-#
-#     except Exception as e:
-#         logger.error(f"Ошибка инициализации: {e}")
-#         raise HTTPException(
-#             status_code=500,
-#             detail="Не удалось инициализировать сервисы"
-#         )
-#     finally:
-#         if redis_conn:
-#             await redis_conn.close()
-#             logger.success("Подключение к Redis закрыто")
-#         logger.success("Работа Почтового сервера завершена!")
 
 app = FastAPI(title="Почта Rubin",
               debug=True,
               version="0.1",
               lifespan=lifespan,
-              # dependencies= [Аутентификация по JWT],
+              # dependencies=[Depends()],
               openapi_tags=tags_metadata)
 
 # static_dir_handbook = os.path.join(os.path.dirname(__file__), "mail/static")
@@ -123,12 +88,30 @@ app.add_middleware(
 )
 
 
+# Только для ASTRA linux Мандатных атрибутов
+@app.middleware("http")
+async def add_basic_auth_header(request, call_next):
+    response = await call_next(request)
+    if response.status_code == 401 and "www-authenticate" not in response.headers:
+        response.headers["WWW-Authenticate"] = 'Basic realm="Secure Area"'
+        response.headers["Connection"] = "keep-alive"
+    response.headers["Connection"] = "keep-alive"
+    if "authorization" in request.headers:
+        response.headers["authorization"] = request.headers["authorization"]
+    return response
+
+
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"message": exc.detail}
     )
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(status_code=204)
 
 
 app.include_router(api_v1)
