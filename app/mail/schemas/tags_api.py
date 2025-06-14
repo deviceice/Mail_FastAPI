@@ -20,6 +20,10 @@ tags_metadata = [
         "description": "API для полного скачивания вложений из сообщения"
     },
     {
+        "name": "Upload attachment",
+        "description": "API для загрузки и удаления вложений перед отправкой почтового сообщения"
+    },
+    {
         "name": "Folders",
         "description": "API для работы с папками ",
     },

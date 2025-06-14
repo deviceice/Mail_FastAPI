@@ -37,6 +37,9 @@ async def websocket_imap(websocket: WebSocket,
         imap = await gen.__anext__()
     except StopAsyncIteration:
         return
+    except WebSocketDisconnect as e:
+        logger.info(f"WebSocket disconnected: {e.code}, reason: {e.reason}")
+        return
     connection_active = True
     try:
         await imap.select("INBOX")

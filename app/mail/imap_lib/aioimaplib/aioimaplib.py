@@ -819,8 +819,12 @@ class IMAP4:
     async def namespace(self) -> Response:
         return await asyncio.wait_for(self.protocol.namespace(), self.timeout)
 
-    async def noop(self) -> Response:
-        return await asyncio.wait_for(self.protocol.simple_command('NOOP'), self.timeout)
+    async def noop(self, timeout) -> Response:
+        if timeout:
+            return await asyncio.wait_for(self.protocol.simple_command('NOOP'), timeout)
+        else:
+            return await asyncio.wait_for(self.protocol.simple_command('NOOP'), self.timeout)
+
 
     async def check(self) -> Response:
         return await asyncio.wait_for(self.protocol.simple_command('CHECK'), self.timeout)

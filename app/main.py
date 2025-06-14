@@ -11,6 +11,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 
 from mail.database.db_session import create_tables_mail
+from mail.settings_mail_servers.settings_server import SettingsServer
 from mail.api.api_mail import api_v1
 from mail.api.api_websockets import api_ws
 from mail.api.api_contacts import api_contacts
@@ -29,10 +30,10 @@ async def lifespan(app: FastAPI):
     try:
         # Создаем пул соединений
         redis_pool = ConnectionPool(
-            host="20.0.0.123",
-            port=6379,
-            password='12345678',
-            max_connections=500,  # Максимальное количество соединений
+            host=SettingsServer.REDIS_IP,
+            port=SettingsServer.REDIS_PORT,
+            password=SettingsServer.REDIS_PASS,
+            max_connections=SettingsServer.REDIS_MAXCONN,  # Максимальное количество соединений
             socket_timeout=5,
             decode_responses=False,
             socket_connect_timeout=5,
@@ -50,7 +51,7 @@ async def lifespan(app: FastAPI):
         app.state.redis_pool = redis_pool
 
         # Инициализация БД
-        await async_db_mail.create_eng_session('DB_MAIL')
+        await async_db_mail.create_eng_session()
         logger.success("Подключение к БД установлено")
 
         yield
@@ -59,7 +60,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Ошибка инициализации: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Не удалось инициализировать сервисы"
+            detail=f"Не удалось инициализировать сервисы ошибка: {e}"
         )
     finally:
         if redis_pool:

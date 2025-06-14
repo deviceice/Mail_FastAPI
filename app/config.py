@@ -15,7 +15,7 @@ class Settings:
 
     def write_conf(self):
         static_dir = os.path.join(os.path.dirname(__file__), "config/config.ini")
-        with open(static_dir, 'r+', encoding='utf-8') as config_file:
+        with open(static_dir, 'w', encoding='utf-8') as config_file:
             self.config.write(config_file)
 
     def get_conf(self):

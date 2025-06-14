@@ -15,7 +15,7 @@ from mail.imap_smtp_connect.timed_connection import TimedConnection
 
 class SMTPPool:
     def __init__(self, expiry_seconds: int = 1800,  # 30 минут по умолчанию
-                 timeout: Union[int, float] = 1.5):
+                 timeout: Union[int, float] = 50):
         self.pools = defaultdict(asyncio.Queue)
         self.expiry_seconds = expiry_seconds  # Время жизни соединения в секундах
         self.timeout_connect = timeout  # Таймаут на подключение к IMAP серверу

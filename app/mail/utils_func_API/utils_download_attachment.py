@@ -7,10 +7,13 @@ import tempfile
 import base64
 from base64io import Base64IO
 import io
+from pathlib import Path
+
+temp_dir = Path("./Mail_FastApi/app/temp")
 
 
 async def async_chunked_base64_to_temp(encoded_data: bytes) -> str:
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_file = tempfile.NamedTemporaryFile(dir=temp_dir, delete=False)
     temp_path = temp_file.name
     temp_file.close()
 
@@ -35,6 +38,3 @@ def delete_temp_file(path: str):
         os.remove(path)
     except Exception as e:
         print(f"Error deleting temp file {path}: {e}")
-
-
-

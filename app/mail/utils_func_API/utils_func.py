@@ -10,9 +10,6 @@ from imapclient.imap_utf7 import encode, decode
 
 async def get_mail_login_pam(request: Request):
     auth_header = request.headers.get("authorization")
-    # print('auth_header=', auth_header)
-    # print('auth_all', request.headers)
-
     encoded_credentials = auth_header.split(" ")[1]
     decoded_bytes = base64.b64decode(encoded_credentials)
     decoded_credentials = decoded_bytes.decode("utf-8")

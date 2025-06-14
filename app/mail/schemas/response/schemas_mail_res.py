@@ -45,6 +45,12 @@ class GetMailsResponse(BaseModel):
     emails: List[Email] = []
 
 
+class GetMailsSearch(BaseModel):
+    status: bool
+    total_search: int = 0
+    mails: List[Email] = []
+
+
 class GetNewMailsResponse(BaseModel):
     status: bool
     total_message_recent: int = 0

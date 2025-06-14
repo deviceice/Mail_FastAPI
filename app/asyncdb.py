@@ -3,24 +3,40 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from pydantic_core import MultiHostUrl
 from config import Settings
+from mail.settings_mail_servers.settings_server import SettingsServer
 
-settings = Settings()
+
+# settings = Settings()
 
 
-def asyncpg_url(header_name_in_config) -> MultiHostUrl:
-    settings.open_conf()
-    config = settings.get_conf()
+# def asyncpg_url(header_name_in_config) -> MultiHostUrl:
+#     settings.open_conf()
+#     config = settings.get_conf()
+#     try:
+#         return MultiHostUrl.build(
+#             scheme="postgresql+asyncpg",
+#             username=config[header_name_in_config]['user'],
+#             password=config[header_name_in_config]['password'],
+#             host=config[header_name_in_config]['ip_db'],
+#             port=int(config[header_name_in_config]['port_db']),
+#             path=config[header_name_in_config]['name_db'],
+#         )
+#     except KeyError as e:
+#         logger.error(f"Отсутствует ключ в конфигурации: {e}")
+#         raise ValueError(f"Invalid database configuration: {e}") from e
+
+def asyncpg_url() -> MultiHostUrl:
     try:
         return MultiHostUrl.build(
             scheme="postgresql+asyncpg",
-            username=config[header_name_in_config]['user'],
-            password=config[header_name_in_config]['password'],
-            host=config[header_name_in_config]['ip_db'],
-            port=int(config[header_name_in_config]['port_db']),
-            path=config[header_name_in_config]['name_db'],
+            username=SettingsServer.DB_USER,
+            password=SettingsServer.DB_PASS,
+            host=SettingsServer.DB_IP,
+            port=SettingsServer.DB_PORT,
+            path=SettingsServer.DB_NAME,
         )
     except KeyError as e:
-        logger.error(f"Отсутствует ключ в конфигурации: {e}")
+        logger.error(f"Отсутствует ключ в конфигурации БД: {e}")
         raise ValueError(f"Invalid database configuration: {e}") from e
 
 
@@ -29,14 +45,14 @@ class AsyncDB:
         self.engine = None
         self.AsyncSessionFactory = None
 
-    async def create_eng_session(self, header_name_in_config):
-        await self.create_engine(header_name_in_config)
+    async def create_eng_session(self):
+        await self.create_engine()
         await self.create_async_sessionmaker()
 
-    async def create_engine(self, header_name_in_config):
-        self.engine = create_async_engine(asyncpg_url(header_name_in_config).unicode_string(),
-                                          pool_size=50,
-                                          max_overflow=10,
+    async def create_engine(self):
+        self.engine = create_async_engine(asyncpg_url().unicode_string(),
+                                          pool_size=30,
+                                          max_overflow=50,
                                           pool_pre_ping=True,
                                           future=True,
                                           echo=False)

@@ -22,7 +22,7 @@ import base64
 
 class IMAPPool:
     def __init__(self, expiry_seconds: int = 1800,  # 30 минут по умолчанию
-                 timeout: Union[int, float] = 2.5):
+                 timeout: Union[int, float] = 30):
         self.pools = defaultdict(asyncio.Queue)
         self.expiry_seconds = expiry_seconds  # Время жизни соединения в секундах
         self.timeout_connect = timeout  # Таймаут на подключение к IMAP серверу
@@ -42,7 +42,6 @@ class IMAPPool:
                 if timed_conn.is_expired(self.expiry_seconds) or not await self._is_connection_active(
                         timed_conn.connection):
                     logger.warning("Соединение устарело или неактивно. Пересоздаем...")
-                    await self._close_connection(timed_conn.connection)
                     imap = await self._create_imap_connection(user, password)
                     timed_conn = TimedConnection(imap)
                 else:
@@ -82,7 +81,8 @@ class IMAPPool:
             timeout=self.timeout_connect
         )
         try:
-            await imap.wait_hello_from_server()
+            status = await imap.wait_hello_from_server()
+            print(status)
         except Exception as e:
             logger.error(f"Ошибка подключения: {e}")
             raise HTTPExceptionMail.IMAP_TIMEOUT_504
@@ -99,7 +99,7 @@ class IMAPPool:
 
     async def _is_connection_active(self, imap) -> bool:
         try:
-            status, _ = await imap.noop()
+            status, _ = await imap.noop(timeout=0.2)
             return status == 'OK' and imap.get_state() not in ('LOGOUT', 'NON_AUTH')
         except (asyncio.TimeoutError, aioimaplib.Abort, Exception) as e:
             logger.error(f"Ошибка проверки активности: {e}")

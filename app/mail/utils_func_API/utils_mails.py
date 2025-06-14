@@ -8,7 +8,7 @@ import email
 import urllib.parse
 
 
-async def get_elements_inbox_uid(arr, last_uid=None, limit=20):
+def get_elements_inbox_uid(arr, last_uid=None, limit=20):
     """
     Возвращает последнии N=limit elem из list или N=limit предыдущих elem начиная после last_uid
     """
@@ -21,6 +21,7 @@ async def get_elements_inbox_uid(arr, last_uid=None, limit=20):
             return []
 
         return arr[max(0, index - limit):index]
+
 
 def clear_bytes_in_message(message):
     """
@@ -178,7 +179,7 @@ def find_attachments(bodystructure):
     return attachments
 
 
-async def get_mails_uids_unseen(messages, messages_unseen):
+def get_mails_uids_unseen(messages, messages_unseen):
     """
     Возвращает списки с uids всех сообщений, и непрочитанных сообщений, а так же колличество сообщейний
     """

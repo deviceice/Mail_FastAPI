@@ -32,6 +32,11 @@ class HTTPExceptionMail:
     ERROR_IN_BACKEND_SERVER_500 = HTTPException(status_code=status_code.HTTP_503_SERVICE_UNAVAILABLE,
                                                 detail=f"Ошибка в Backend, сообщите разработчику для исправления")
 
-    NOT_AUTHENTICATED_401 = HTTPException(status_code=status_code.HTTP_401_UNAUTHORIZED, detail='Не правильный логин или пароль')
+    NOT_AUTHENTICATED_401 = HTTPException(status_code=status_code.HTTP_401_UNAUTHORIZED,
+                                          detail='Не правильный логин или пароль')
 
-    ERROR_DELETES_MAILS_304 = HTTPException(status_code=status_code.HTTP_304_NOT_MODIFIED, detail='Не удалось удалить сообщения')
+    ERROR_DELETES_MAILS_304 = HTTPException(status_code=status_code.HTTP_304_NOT_MODIFIED,
+                                            detail='Не удалось удалить сообщения')
+
+    ERROR_SAVED_FILE_400 = HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST,
+                                            detail='Не удалось загрузить файлы')

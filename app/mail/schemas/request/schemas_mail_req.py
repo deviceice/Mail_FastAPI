@@ -1,10 +1,15 @@
 from pydantic import BaseModel, EmailStr
 from typing import Union, Optional, List, Dict, Sequence
+from fastapi import UploadFile, File, Form
 
 
 class Attachment(BaseModel):
     filename: str
-    file: str
+    uuid: str
+
+# class Attachment(BaseModel):
+#     filename: str
+#     file: List[UploadFile] = File([])
 
 
 class EmailSend(BaseModel):
@@ -13,6 +18,7 @@ class EmailSend(BaseModel):
     body: str
     reference: Optional[str] = None
     attachments: List[Attachment] = []
+    # attachments: List[UploadFile] = File([])
 
 
 class NameFolder(BaseModel):
