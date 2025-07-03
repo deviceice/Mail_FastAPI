@@ -20,14 +20,9 @@ send_mail_request_example = {
                             "subject": "Присылаю вам файл",
                             "body": "Отправляю файл sources.list посмотрите",
                             "reference": '',
-                            "attachments": [{
-                                "filename": "sources.list",
-                                "file": "I2RlYiBjZHJvbTpbT1MgQXN0cmEgTGludXggMS41IHNtb2xlbnNrIC0gYW1kNjQgRFZEIF0vIHNtb2xlbnNrIGNvbnRyaWIgbWFpbiBub24tZnJlZSAKCmRlYiBmaWxlOi8vL3JlcGEvZGlzazEvIHNtb2xlbnNrIGNvbnRyaWIgbWFpbiBub24tZnJlZQpkZWIgZmlsZTovLy9yZXBhL2Rpc2syLyBzbW9sZW5zayBjb250cmliIG1haW4gbm9uLWZyZWUK"
-                            },
-                                {
-                                    "filename": "sources2.list",
-                                    "file": "I2RlYiBjZHJvbTpbT1MgQXN0cmEgTGludXggMS41IHNtb2xlbnNrIC0gYW1kNjQgRFZEIF0vIHNtb2xlbnNrIGNvbnRyaWIgbWFpbiBub24tZnJlZSAKCmRlYiBmaWxlOi8vL3JlcGEvZGlzazEvIHNtb2xlbnNrIGNvbnRyaWIgbWFpbiBub24tZnJlZQpkZWIgZmlsZTovLy9yZXBhL2Rpc2syLyBzbW9sZW5zayBjb250cmliIG1haW4gbm9uLWZyZWUK"
-                                }]
+                            "attachments": [
+                                {"filename": "09tr.tar", "uuid": "668c3935-4e98-4438-b7e6-3738c903a463"},
+                                {"filename": "image.png", "uuid": "6862a706-663e-4d1c-aa08-782eb1846fc9"},]
                         }
                     },
                     "example3": {

@@ -49,7 +49,10 @@ async def get_objects(session: AsyncSession = Depends(get_session)):
                   tags=['Contacts'],
                   summary=tags_description_api['abonents']['summary'],
                   description=tags_description_api['abonents']['description'])
-@cache(expire=120, key_builder=lambda *args, **kwargs: "api_v1_abonents")
+@cache(
+    expire=120,
+    key_builder=lambda func, *args, **kwargs: f"api_v1_abonents:{kwargs.get('kwargs', {}).get('object_sid', 'none')}"
+)
 async def get_contacts(object_sid: str = Query(None, description="sid объекта", example="1"),
                        session: AsyncSession = Depends(get_session)):
     db_data = await get_abd_abonents(session, object_sid)

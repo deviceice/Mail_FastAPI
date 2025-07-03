@@ -165,6 +165,7 @@ async def new_mails(
     return {'status': True, 'total_message_recent': total_message_recent, 'emails': emails_list}
 
 
+# API в доработке, отправка будет осуществляться через celery
 @api_v1.post("/send_mail",
              openapi_extra=send_mail_request_example,
              tags=['Send mails'],
@@ -182,12 +183,12 @@ async def send_emails(email_send: EmailSend,
     message = await create_email_with_attachments(email_send, mail_login)
     logger.info(f"Создалось сообщение")
     try:
-        status, response = await smtp.sendmail(mail_login, email_send.to, message.as_string())
+        status, response = await smtp.send_message(message)
         logger.info(f"отправлено {status}, {response}")
-        await imap.append(message_bytes=message.as_bytes(), mailbox='Sent', flags=EmailFlags.flags['seen'])
-        logger.info("Добавлено в отправленные")
-        return Response(status_code=status_code.HTTP_200_OK,)
-                        # background=background_tasks.add_task(append_inbox_message_in_sent, message, imap))
+        # await imap.append(message_bytes=message.as_bytes(), mailbox='Sent', flags=EmailFlags.flags['seen'])
+        # logger.info("Добавлено в отправленные")
+        return Response(status_code=status_code.HTTP_200_OK, )
+        # background=background_tasks.add_task(append_inbox_message_in_sent, message, imap))
     except Exception:
         raise HTTPExceptionMail.SMTP_TOO_MANY_REQUESTS_429
 
