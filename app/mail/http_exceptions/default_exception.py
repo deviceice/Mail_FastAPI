@@ -40,3 +40,5 @@ class HTTPExceptionMail:
 
     ERROR_SAVED_FILE_400 = HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST,
                                             detail='Не удалось загрузить файлы')
+    NOT_CONNECTED_DB_503 = HTTPException(status_code=status_code.HTTP_503_SERVICE_UNAVAILABLE,
+                                         detail='База данных недоступна')

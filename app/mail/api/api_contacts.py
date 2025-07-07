@@ -1,28 +1,12 @@
-import asyncio
-import email
-
-from fastapi import (APIRouter, HTTPException, Response, BackgroundTasks, Depends, Query, WebSocket,
-                     WebSocketDisconnect)
+from fastapi import APIRouter, Depends, Query
 from fastapi_cache.decorator import cache
-from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette import status as status_code
 
-from mail.imap_smtp_connect.imap_connection import get_imap_connection
-from mail.imap_smtp_connect.smtp_connection import get_smtp_connection
 from mail.database.db_session import get_session
 from mail.database.crud_mail import *
-from mail.settings_mail_servers.settings_server import SettingsServer
 from mail.utils_func_API import *
-from mail.schemas.request import *
-from mail.schemas.response import *
 from mail.schemas.db.schemas_db import *
-
 from mail.schemas.tags_api import tags_description_api
-from mail.example_schemas.response_schemas_examples import *
-from mail.example_schemas.request_schemas_examples import *
-from mail.options_emails import EmailFlags
-from mail.http_exceptions.default_exception import HTTPExceptionMail
 
 api_contacts = APIRouter(prefix="/api/v1/contacts")
 
@@ -36,6 +20,8 @@ api_contacts = APIRouter(prefix="/api/v1/contacts")
 async def get_objects(session: AsyncSession = Depends(get_session)):
     db_data = await get_abd_objects(session)
     result = []
+    if db_data is None:
+        return None
     for object_sid, parent_object_sid, name in db_data:
         result.append(ObjectOut(
             object_sid=object_sid,
@@ -57,6 +43,8 @@ async def get_contacts(object_sid: str = Query(None, description="sid объек
                        session: AsyncSession = Depends(get_session)):
     db_data = await get_abd_abonents(session, object_sid)
     result = []
+    if db_data is None:
+        return None
     for abonent_sid, fio, address, object_sid, login, object_name, job_name in db_data:
         email = f"{address}@{object_sid}.{SettingsServer.DOMAIN_DEFAULT}" if address else None
         result.append(AbonentOut(

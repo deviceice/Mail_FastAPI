@@ -2,28 +2,9 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from pydantic_core import MultiHostUrl
-from config import Settings
+
 from mail.settings_mail_servers.settings_server import SettingsServer
 
-
-# settings = Settings()
-
-
-# def asyncpg_url(header_name_in_config) -> MultiHostUrl:
-#     settings.open_conf()
-#     config = settings.get_conf()
-#     try:
-#         return MultiHostUrl.build(
-#             scheme="postgresql+asyncpg",
-#             username=config[header_name_in_config]['user'],
-#             password=config[header_name_in_config]['password'],
-#             host=config[header_name_in_config]['ip_db'],
-#             port=int(config[header_name_in_config]['port_db']),
-#             path=config[header_name_in_config]['name_db'],
-#         )
-#     except KeyError as e:
-#         logger.error(f"Отсутствует ключ в конфигурации: {e}")
-#         raise ValueError(f"Invalid database configuration: {e}") from e
 
 def asyncpg_url() -> MultiHostUrl:
     try:

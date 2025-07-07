@@ -3,10 +3,10 @@
 from celery import Celery
 import os
 
-from mail.settings_mail_servers.settings_server import SettingsServer  # путь к настройкам с REDIS
+from ..settings_mail_servers.settings_server import SettingsServer
 
 celery = Celery(
-    "webmail",
+    "send_mail",
     broker=f"redis://:{SettingsServer.REDIS_PASS}@{SettingsServer.REDIS_IP}:{SettingsServer.REDIS_PORT}/0",
     backend=f"redis://:{SettingsServer.REDIS_PASS}@{SettingsServer.REDIS_IP}:{SettingsServer.REDIS_PORT}/1"
 )

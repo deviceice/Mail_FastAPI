@@ -2,11 +2,12 @@ import asyncio
 import time
 import base64
 import aiosmtplib
+
 from typing import Union
 from contextlib import asynccontextmanager
 from collections import defaultdict
 from loguru import logger
-from fastapi import Request, HTTPException, status
+from fastapi import Request
 
 from mail.http_exceptions.default_exception import HTTPExceptionMail
 from mail.settings_mail_servers.settings_server import SettingsServer

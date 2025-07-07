@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.decorator import cache
 
 from mail.database.db_session import create_tables_mail
 from mail.settings_mail_servers.settings_server import SettingsServer

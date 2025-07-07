@@ -1,34 +1,14 @@
-import asyncio
-import email
-
-from fastapi import (APIRouter, HTTPException, Response, BackgroundTasks, Depends, Query, WebSocket,
-                     WebSocketDisconnect)
-from fastapi.responses import StreamingResponse
-from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
-from starlette import status as status_code
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 
 from mail.imap_smtp_connect.imap_connection import get_imap_connection, get_imap_connection_ws
-from mail.imap_smtp_connect.smtp_connection import get_smtp_connection
-from mail.database.db_session import get_session
-from mail.database.redis_session import get_redis
-from mail.database.crud_mail import *
 from mail.utils_func_API import *
-from mail.schemas.request.schemas_mail_req import *
-from mail.schemas.response.schemas_mail_res import *
-from mail.schemas.tags_api import tags_description_api
-from mail.example_schemas.response_schemas_examples import *
-from mail.example_schemas.request_schemas_examples import *
-from mail.options_emails import EmailFlags
-from mail.http_exceptions.default_exception import HTTPExceptionMail
 
 api_ws = APIRouter(prefix="/ws")
 
 
 @api_ws.websocket("/imap_new_mails")
 async def websocket_imap(websocket: WebSocket,
-                         #imap=Depends(get_imap_connection),
                          ):
     """WebSocket-эндпоинт для получения новых писем в реальном времени"""
     # await websocket.accept()
@@ -73,7 +53,7 @@ async def websocket_imap(websocket: WebSocket,
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                #print(f"IMAP Error: {e}")
+                # print(f"IMAP Error: {e}")
                 await websocket.send_json({"error": str(e)})
                 break
 
@@ -99,6 +79,3 @@ async def websocket_imap(websocket: WebSocket,
         except Exception as e:
             pass
             # print(f"Error closing WebSocket: {e}")
-
-
-

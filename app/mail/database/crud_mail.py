@@ -1,8 +1,7 @@
-# Запросы в БД на этапе разработки
 from mail.database.models_mail import *
 
 
-# Test корректной работы сессии
+# Запросы в БД на этапе разработки
 async def get_abd_objects(session):
     query = select(AbdObject.object_sid,
                    AbdObject.parent_object_sid,
@@ -10,7 +9,7 @@ async def get_abd_objects(session):
                    )
     async with session as s:
         result = await s.execute(query)
-    return result.all()
+    return result.fetchall()
 
 
 async def get_abd_abonents(session, object_sid):
@@ -28,7 +27,6 @@ async def get_abd_abonents(session, object_sid):
 
     if object_sid:
         query = query.where(AbdAbonent.object_sid == object_sid)
-
     async with session as s:
         result = await s.execute(query)
-    return result.all()
+    return result.fetchall()

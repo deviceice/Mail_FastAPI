@@ -1,10 +1,9 @@
 import logging
-import time
 import urllib.parse
 import uuid
 import aiofiles.os
 
-from fastapi import (APIRouter, HTTPException, Response, BackgroundTasks, Depends, Query)
+from fastapi import (APIRouter, HTTPException, Response, BackgroundTasks, Depends, Query, File, UploadFile)
 from fastapi.responses import StreamingResponse
 from starlette import status as status_code
 
@@ -12,13 +11,14 @@ from mail.example_schemas.request_schemas_examples import *
 from mail.example_schemas.response_schemas_examples import *
 from mail.imap_smtp_connect.imap_connection import get_imap_connection
 from mail.imap_smtp_connect.smtp_connection import get_smtp_connection
-from mail.options_emails import EmailFlags
 from mail.schemas.request.schemas_mail_req import *
 from mail.schemas.response.schemas_mail_res import *
 from mail.schemas.tags_api import tags_description_api
 from mail.utils_func_API import *
+
 from tests.pam_auth import pam_auth
 
+# api_v1 = APIRouter(prefix="/api/v1")
 api_v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(pam_auth)])
 BASE_DIR_APP = Path(__file__).resolve().parents[2]
 UPLOAD_DIR = BASE_DIR_APP / 'temp'
@@ -290,7 +290,7 @@ async def body_message(
         if status != 'OK':
             raise HTTPExceptionMail.FOLDER_NOT_FOUND_404
         status, response = await imap.uid("FETCH", uid, "(BODY[HEADER] BODY[1.MIME] BODY[1] BODYSTRUCTURE)")
-    except asyncio.exceptions.TimeoutError:
+    except Exception:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
     if status != 'OK':
         raise HTTPExceptionMail.IMAP_TIMEOUT_504

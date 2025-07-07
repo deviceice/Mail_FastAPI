@@ -1,11 +1,14 @@
-from collections.abc import AsyncGenerator
+import sqlalchemy
+from loguru import logger
+from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateSchema
-from mail.database.models_mail import *
-from loguru import logger
+from starlette import status
+
 from asyncdb import AsyncDB
-from typing import AsyncGenerator, Optional
+from mail.database.models_mail import *
 
 async_db_mail = AsyncDB()
 
@@ -21,6 +24,8 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         logger.error(f"Ошибка сессии: {e}")
         if session:
             await session.rollback()
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="БД не доступна")
+
     finally:
         if session:
             await session.close()

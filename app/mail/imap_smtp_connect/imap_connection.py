@@ -1,23 +1,22 @@
 import asyncio
 import json
-
-from fastapi import Request, HTTPException, status, WebSocket
-from mail.imap_lib.aioimaplib import aioimaplib
+import base64
 import time
+
+from fastapi import Request, status, WebSocket
 from typing import Union
 from contextlib import asynccontextmanager
 from collections import defaultdict
 from loguru import logger
+
+from mail.imap_lib.aioimaplib import aioimaplib
 from mail.settings_mail_servers.settings_server import SettingsServer
 from mail.http_exceptions.default_exception import HTTPExceptionMail
 from mail.imap_smtp_connect.timed_connection import TimedConnection
-import ctypes
-import socket
-import base64
 
 
 # redis: Redis = Depends(lambda: app.state.redis) redis подключение редис
-# Пулы соединений хранятся только локально, при масштабировании нужна привязка в Nginx к  инстансу
+# Пулы соединений хранятся только локально, при масштабировании нужна привязка в Nginx к инстансу
 
 
 class IMAPPool:

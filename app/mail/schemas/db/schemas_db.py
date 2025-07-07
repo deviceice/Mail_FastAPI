@@ -1,8 +1,6 @@
 from pydantic import BaseModel
 from typing import Union, Optional, List, Dict, Sequence
 
-from typing import Union
-
 
 class AbonentOut(BaseModel):
     abonent_sid: int
