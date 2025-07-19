@@ -42,3 +42,4 @@ class HTTPExceptionMail:
                                             detail='Не удалось загрузить файлы')
     NOT_CONNECTED_DB_503 = HTTPException(status_code=status_code.HTTP_503_SERVICE_UNAVAILABLE,
                                          detail='База данных недоступна')
+

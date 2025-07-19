@@ -602,11 +602,44 @@ status_folder_response_example = {
         "description": "Ответ на получение статуса папки",
         "content": {
             "application/json": {
-                "example": {
-                    'messages': 21,
-                    'recent': 0,
-                    'unseen': 3
-                }
+                "example": [
+                    {
+                        "messages": 6,
+                        "recent": 0,
+                        "unseen": 0,
+                        "key": "Trash"
+                    },
+                    {
+                        "messages": 0,
+                        "recent": 0,
+                        "unseen": 0,
+                        "key": "ТЕСТ"
+                    },
+                    {
+                        "messages": 0,
+                        "recent": 0,
+                        "unseen": 0,
+                        "key": "Junk"
+                    },
+                    {
+                        "messages": 23,
+                        "recent": 0,
+                        "unseen": 0,
+                        "key": "Sent"
+                    },
+                    {
+                        "messages": 6,
+                        "recent": 0,
+                        "unseen": 0,
+                        "key": "Drafts"
+                    },
+                    {
+                        "messages": 115,
+                        "recent": 0,
+                        "unseen": 54,
+                        "key": "INBOX"
+                    }
+                ]
             }
         }
 
@@ -770,6 +803,72 @@ copy_emails_response_example = {
                 'example': {'message': "Не удалось скопировать письмо:"}
             }
         }
+    },
+    401: {
+        "description": "Не прошла авторизация",
+        "content": {
+            "application/json": {
+                'example': {'message': "Не правильный логин или пароль"}
+            }
+        }
+    },
+    404: {
+        "description": "Если не найдена Папка в почтовом ящике",
+        "content": {
+            "application/json": {
+                'example': {'message': "Папка не найдена в почтовом ящике"}
+            }
+        }
+    },
+    429: {
+        "description": "Превышено кол-во запросов к IMAP серверу",
+        "content": {
+            "application/json": {
+                'example': {'message': "Превышено кол-во запросов к IMAP серверу"}
+            }
+        }
+    },
+    504: {
+        "description": "Проблемы с IMAP сервером",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message": "Сервер IMAP не ответил"
+                }
+            }
+        }
+    }
+}
+save_attachmens_response_example = {
+    200: {
+        "description": "Ответ на получение статуса папки",
+        "content": {
+            "application/json": {
+                "example": [
+                    {
+                        "uuid": "3e87ce0e-3e98-44a0-898c-9032c3804a94",
+                        "filename": "sources.list",
+                        "size": 109
+                    },
+                    {
+                        "uuid": "e5b428a3-160a-4fde-b99c-cb26703040d1",
+                        "filename": "sources1.list",
+                        "size": 109
+                    },
+                    {
+                        "uuid": "735f4ff7-055a-46dd-91f1-366877c62142",
+                        "filename": "sources2.list",
+                        "size": 109
+                    },
+                    {
+                        "uuid": "65e48283-c152-4c65-8bcb-b3ee0cd17ec8",
+                        "filename": "sources3.list",
+                        "size": 109
+                    }
+                ]
+            }
+        }
+
     },
     401: {
         "description": "Не прошла авторизация",

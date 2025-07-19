@@ -57,7 +57,7 @@ class IMAPPool:
             if imap:
                 try:
                     if imap.get_state() in 'AUTH':
-                        print(imap.get_state())
+                        print('imap.get_state()', imap.get_state())
                         pass
                         # await imap.logout()
                     else:
@@ -80,17 +80,16 @@ class IMAPPool:
             timeout=self.timeout_connect
         )
         try:
-            status = await imap.wait_hello_from_server()
-            print(status)
+            await imap.wait_hello_from_server()
         except Exception as e:
             logger.error(f"Ошибка подключения: {e}")
             raise HTTPExceptionMail.IMAP_TIMEOUT_504
         try:
-            status, response = await imap.login(user, password)
+            status, _ = await imap.login(user, password)
         except asyncio.exceptions.TimeoutError:
             raise HTTPExceptionMail.IMAP_TIMEOUT_504
         if status == 'NO':
-            print(status, response)
+            print('status no', status)
             raise HTTPExceptionMail.NOT_AUTHENTICATED_401
         if status != 'OK':
             raise HTTPExceptionMail.IMAP_TOO_MANY_REQUESTS_429

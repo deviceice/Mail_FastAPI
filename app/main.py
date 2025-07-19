@@ -68,12 +68,14 @@ async def lifespan(app: FastAPI):
         logger.success("Работа Почтового сервера завершена!")
 
 
-app = FastAPI(title="Почта Rubin",
-              debug=True,
-              version="0.1",
-              lifespan=lifespan,
-              # dependencies=[Depends()],
-              openapi_tags=tags_metadata)
+app = FastAPI(
+    title="Почта Rubin",
+    description="API для работы с почтовой системой Rubin",
+    debug=True,
+    version="0.1",
+    lifespan=lifespan,
+    # dependencies=[Depends()],
+    openapi_tags=tags_metadata)
 
 # static_dir_handbook = os.path.join(os.path.dirname(__file__), "mail/static")
 # app.mount("/mail/static", StaticFiles(directory=static_dir_handbook, html=True),

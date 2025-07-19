@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, UUID4
 from typing import Union, Optional, List, Dict, Sequence
 from pydantic import BaseModel
 
@@ -16,7 +16,6 @@ class EmailReferense(BaseModel):
     subject: Union[str, None]
     date: Union[str, None]
     is_read: bool
-    # mails_referance: list[str] = []
     flags: bool
     references: Union[str, None]
     attachments: List[Attachment] = []
@@ -24,7 +23,7 @@ class EmailReferense(BaseModel):
 
 
 class Email(BaseModel):
-    uid: Union[str, int]
+    uid: int
     message_id: Union[str, None]
     from_: str = Field(alias="from")
     to: List[str] = []
@@ -34,14 +33,14 @@ class Email(BaseModel):
     flags: bool
     attachments: List[Attachment] = []
     references: Union[str, None]  # if message.get("References", ""):
-    mails_reference: List[EmailReferense] = []
+    # mails_reference: List[EmailReferense] = []
 
 
 class GetMailsResponse(BaseModel):
     status: bool
     total_message: int = 0
     total_unseen_message: int = 0,
-    folders: list[str]
+    # folders: list[str]
     emails: List[Email] = []
 
 
@@ -73,13 +72,19 @@ class Default200Response(BaseModel):
     message: str
 
 
-# class StatusFolderResponse(BaseModel):
-#     messages: int
-#     recent: int
-#     unseen: int
-#
-# class StatusFolder(BaseModel):
+class StatusFolderResponse(BaseModel):
+    messages: int
+    recent: int
+    unseen: int
+    key: str
+
 
 class GetMailResponse(BaseModel):
     status: bool
     mail: Optional[Email] = None
+
+
+class AttachmentSaved(BaseModel):
+    uuid: UUID4
+    filename: str
+    size: int

@@ -5,6 +5,7 @@ from typing import Union, Optional, List, Dict, Sequence
 class Attachment(BaseModel):
     filename: str
     uuid: str
+    size: Optional[int] = None
 
 
 class EmailSend(BaseModel):

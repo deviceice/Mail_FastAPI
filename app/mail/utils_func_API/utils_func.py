@@ -21,6 +21,19 @@ async def get_mail_login_pam(request: Request):
         return None
 
 
+async def get_mail_login_pam_celery(request: Request):
+    auth_header = request.headers.get("authorization")
+    encoded_credentials = auth_header.split(" ")[1]
+    decoded_bytes = base64.b64decode(encoded_credentials)
+    decoded_credentials = decoded_bytes.decode("utf-8")
+    try:
+        username, password = decoded_credentials.split(":", 1)
+        mail_login = username + '@' + SettingsServer.SMTP_HOST
+        return mail_login, username, password
+    except ValueError:
+        return None
+
+
 async def format_size(size_bytes):
     # Преобразуем размер в читаемый формат
     if size_bytes < 1024:
@@ -51,7 +64,7 @@ async def format_size(size_bytes):
 #         folders.append(folder_name)
 #     return folders
 
-async def parse_folders(response):
+def parse_folders(response):
     folders = []
     for line in response:
         if not line.startswith(b'('):
@@ -127,5 +140,3 @@ def encode_name_imap_utf7(s: str) -> str:
 
     flush_buffer()
     return ''.join(result)
-
-

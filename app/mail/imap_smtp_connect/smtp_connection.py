@@ -34,7 +34,6 @@ class SMTPPool:
                 timed_conn = await pool.get()
                 if timed_conn.is_expired(self.expiry_seconds) or not timed_conn.connection.is_connected:
                     logger.warning("Соединение устарело или неактивно. Пересоздаем...")
-                    # await self._close_connection(timed_conn.connection)
                     smtp = await self._create_smtp_connection(user, password)
                     timed_conn = TimedConnection(smtp)
                     await pool.put(timed_conn)
@@ -94,4 +93,9 @@ async def get_smtp_connection(request: Request):
     except ValueError:
         raise HTTPExceptionMail.NOT_AUTHENTICATED_401
     async with smtp_pool.get_connection(username, password) as smtp:
+        yield smtp
+
+
+async def get_smtp_connection_celery(username: str, password: str):
+    with smtp_pool.get_connection(username, password) as smtp:
         yield smtp

@@ -4,7 +4,6 @@ from mail.utils_func_API.utils_func import *
 from typing import Union, Optional, List, Dict, Sequence, Any
 from loguru import logger
 from email.utils import decode_rfc2231
-import email
 import urllib.parse
 
 
@@ -63,9 +62,9 @@ def clear_bytes_in_message(message):
 
         flags_search = fetch_start_pattern.search(metadata)
         if flags_search:
-            message_dict['number'] = int(flags_search.group(1))
             uid = str(flags_search.group(2).decode())
             message_dict['uid'] = uid
+            message_dict['number'] = int(flags_search.group(1))
             flags = flags_search.group(3).decode().split()
             message_dict['flags'] = True if '\\Flagged' in flags else False
         else:
@@ -191,6 +190,9 @@ def get_mails_uids_unseen(messages, messages_unseen):
 
 
 def get_message_struct(mail_uid, mails_uids_unseen, message, options):
+    """
+    Формирует структуру для отправики писем фронту
+    """
     if mails_uids_unseen is None:
         mails_uids_unseen = [str(mail_uid)]
     try:
@@ -205,12 +207,8 @@ def get_message_struct(mail_uid, mails_uids_unseen, message, options):
     else:
         last_ref = ''
 
-    test = message.get("Message-ID", "").strip('<>')
-    # if test =="":
-    #     print(message)
-    # print('test=', message.get("Message-ID", "").strip('<>'))
     return {
-        "uid": mail_uid,
+        "uid": int(mail_uid),
         "message_id": message.get("Message-ID", "").strip('<>'),
         "from": message["From"] if message["From"] else '',
         "to": message['To'].split(',') if message['To'] else [],
@@ -220,7 +218,7 @@ def get_message_struct(mail_uid, mails_uids_unseen, message, options):
         "flags": options['flags'] if str(mail_uid) == str(options_uid) else False,
         "attachments": options['attachments'] if str(mail_uid) == str(options_uid) else [],
         "references": last_ref,
-        "mails_reference": [],
+        # "mails_reference": [],
     }
 
 

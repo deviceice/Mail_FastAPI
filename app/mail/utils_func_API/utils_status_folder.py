@@ -1,4 +1,4 @@
-async def parse_status_folders_response(response: bytes) -> dict:
+def parse_status_folders_response(response: bytes) -> dict:
     """
     Парсит строчку b'INBOX (MESSAGES 21 RECENT 0 UNSEEN 3)' и возвращает {"messages": 21, "recent": 0,"unseen": 3}
     """

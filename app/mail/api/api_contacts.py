@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from mail.database.db_session import get_session
 from mail.database.crud_mail import *
 from mail.utils_func_API import *
-from mail.schemas.db.schemas_db import *
+from mail.schemas.response.schemas_contacts_res import *
 from mail.schemas.tags_api import tags_description_api
 
 api_contacts = APIRouter(prefix="/api/v1/contacts")

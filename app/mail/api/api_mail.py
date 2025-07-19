@@ -1,8 +1,6 @@
 import logging
 import urllib.parse
-import uuid
 import aiofiles.os
-
 from fastapi import (APIRouter, HTTPException, Response, BackgroundTasks, Depends, Query, File, UploadFile)
 from fastapi.responses import StreamingResponse
 from starlette import status as status_code
@@ -18,46 +16,51 @@ from mail.utils_func_API import *
 
 from tests.pam_auth import pam_auth
 
-# api_v1 = APIRouter(prefix="/api/v1")
+# api_v1 = APIRouter(prefix="/api/v1") # ДЛЯ ПРОДАКШЕНА ВЫРЕЗАТЬ PAM
 api_v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(pam_auth)])
+
 BASE_DIR_APP = Path(__file__).resolve().parents[2]
 UPLOAD_DIR = BASE_DIR_APP / 'temp'
 semaphore_upload_files = asyncio.Semaphore(50)
 
 
-@api_v1.get('/mails',
-            response_model=GetMailsResponse,
-            responses=get_mails_response_example,
-            tags=['Get mails'],
-            summary=tags_description_api['mails']['summary'],
-            description=tags_description_api['mails']['description']
-            )
+@api_v1.get(
+    '/mails',
+    response_model=GetMailsResponse,
+    responses=get_mails_response_example,
+    tags=['Get mails'],
+    summary=tags_description_api['mails']['summary'],
+    description=tags_description_api['mails']['description']
+)
 async def get_mails(
         mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
         limit: Optional[int] = Query(20, description="Количество писем для получения (от 1 до 100)",
-                                     ge=1, le=1000),
+                                     ge=1, le=100),
         last_uid: Optional[str] = Query(None,
                                         description="Последний UID корневого письма, после которого прислать "
                                                     "следующие письма"),
         imap=Depends(get_imap_connection)):
     try:
         folder = encode_name_imap_utf7(mbox)
-        status_list, response_folders = await imap.list('""', '"*"')
         status_select_folder, _ = await imap.select(f'"{folder}"')
-        status_thread, thread_response = await imap.uid('THREAD', 'REFS UTF-8 ALL')
-        if status_list != 'OK' or status_select_folder != 'OK':
+        if status_select_folder != 'OK':
             raise HTTPExceptionMail.FOLDER_NOT_FOUND_404
+
+        status_thread, thread_response = await imap.uid('THREAD', 'REFS UTF-8 ALL')
         if status_thread != 'OK':
             raise HTTPExceptionMail.IMAP_TIMEOUT_504
 
-        all_folders: Optional[list[str]] = await parse_folders(response_folders) if status_list == 'OK' else None
         thread_tree = parse_thread_response(thread_response[0])
         root_threads = get_root_threads_slice(thread_tree, limit, last_uid)
         uids_to_fetch_lists = [flatten_thread(thread) for thread in root_threads]
-        uids_to_fetch = sorted({uid for sublist in uids_to_fetch_lists for uid in sublist})
+        uids_thread = [uid for sublist in uids_to_fetch_lists for uid in sublist]
+        uids_sort = sorted(uids_thread)
 
-        if not uids_to_fetch:
-            return {'status': True, 'total_message': 0, 'total_unseen_message': 0, 'folders': all_folders, 'emails': []}
+        if not uids_thread:
+            return {'status': True,
+                    'total_message': 0,
+                    'total_unseen_message': 0,
+                    'emails': []}
 
         status_all, messages = await imap.uid_search("ALL")
         status_unread, messages_unseen = await imap.uid_search("UNSEEN")
@@ -69,34 +72,38 @@ async def get_mails(
             messages_unseen=messages_unseen)
 
         if not mails_uids_all:
-            return {'status': False, 'total_message': total_message, 'total_unseen_message': total_unseen_message,
-                    'folders': all_folders, 'emails': []}
+            return {'status': False,
+                    'total_message': total_message,
+                    'total_unseen_message': total_unseen_message,
+                    'emails': []}
 
-        status, msg_data_bytes = await imap.uid("FETCH", ",".join(map(str, uids_to_fetch)),
+        status, msg_data_bytes = await imap.uid("FETCH", ",".join(map(str, uids_thread)),
                                                 "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
+
         if status != 'OK':
-            return {'status': False, 'total_message': total_message, 'total_unseen_message': total_unseen_message,
-                    'folders': all_folders, 'emails': []}
+            return {'status': False,
+                    'total_message': total_message,
+                    'total_unseen_message': total_unseen_message,
+                    'emails': []}
 
-        msg_data, options_message, _ = await asyncio.to_thread(clear_bytes_in_message, message=msg_data_bytes)
-        parsed_messages = await asyncio.gather(
-            *[asyncio.to_thread(email.message_from_bytes, msg_bytes) for msg_bytes in msg_data])
-        messages_dict = {}
-
-        for mail_uid, message, options in zip(uids_to_fetch, parsed_messages, options_message):
-            main_message = get_message_struct(
-                mail_uid=mail_uid,
+        msg_data, options_message, _ = clear_bytes_in_message(message=msg_data_bytes)
+        parser = BytesParser()
+        parsed_messages = [parser.parsebytes(m) for m in msg_data]
+        options_dict = {opt["uid"]: opt for opt in options_message}
+        uid_to_message = {mail_uid: message for mail_uid, message in zip(uids_sort, parsed_messages)}
+        mails = [
+            get_message_struct(
+                mail_uid=uid,
                 mails_uids_unseen=mails_uids_unseen,
-                message=message,
-                options=options
-            )
-            messages_dict[mail_uid] = main_message
-
-        mails = build_email_tree_by_references(messages_dict)
-        mails.sort(key=get_max_uid_in_thread, reverse=True)
-
-        return {'status': True, 'total_message': total_message, 'total_unseen_message': total_unseen_message,
-                'folders': all_folders, 'emails': mails}
+                message=uid_to_message[uid],
+                options=options_dict.get(str(uid), {})
+            ) for uid in uids_thread if uid in uid_to_message
+        ]
+        mails.reverse()
+        return {'status': True,
+                'total_message': total_message,
+                'total_unseen_message': total_unseen_message,
+                'emails': mails}
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
 
@@ -122,9 +129,11 @@ async def get_mail(
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
     if status != 'OK':
-        return {'status': False, 'mail': None}
-    main_message = await asyncio.to_thread(get_new_mail, msg_data_bytes)
-    return {'status': True, 'mail': main_message}
+        return {'status': False,
+                'mail': None}
+    main_message = get_new_mail(msg_data_bytes)
+    return {'status': True,
+            'mail': main_message}
 
 
 @api_v1.get('/new_mails',
@@ -146,23 +155,33 @@ async def new_mails(
         if status_recent != 'OK':
             raise HTTPExceptionMail.IMAP_TIMEOUT_504
 
-        mails_uids_recents, total_message_recent = await get_mails_uids_recent(messages_recent=messages_recent)
+        mails_uids_recents, total_message_recent = get_mails_uids_recent(messages_recent=messages_recent)
         status, msg_data_bytes = await imap.uid("FETCH", ",".join(mails_uids_recents),
                                                 "(FLAGS RFC822.HEADER BODYSTRUCTURE)")
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
     if status != 'OK':
-        return {'status': False, 'total_message': total_message_recent, 'emails': []}
-    emails_list = []
-    msg_data, options_messages, _ = await asyncio.to_thread(clear_bytes_in_message, message=msg_data_bytes)
+        return {'status': False,
+                'total_message': total_message_recent,
+                'emails': []}
 
-    for mail_uid, message, options in zip(mails_uids_recents, msg_data, options_messages):
-        message = email.message_from_bytes(message)
-        main_message = get_message_struct(mail_uid=mail_uid, message=message,
-                                          options=options, mails_uids_unseen=None)
-        emails_list.append(main_message)
-    emails_list.reverse()
-    return {'status': True, 'total_message_recent': total_message_recent, 'emails': emails_list}
+    msg_data, options_message, _ = clear_bytes_in_message(message=msg_data_bytes)
+    parser = BytesParser()
+    parsed_messages = [parser.parsebytes(m) for m in msg_data]
+    options_dict = {opt["uid"]: opt for opt in options_message}
+    uid_to_message = {mail_uid: message for mail_uid, message in zip(mails_uids_recents, parsed_messages)}
+    mails = [
+        get_message_struct(
+            mail_uid=uid,
+            mails_uids_unseen=None,
+            message=uid_to_message[uid],
+            options=options_dict.get(str(uid), {})
+        ) for uid in mails_uids_recents if uid in uid_to_message
+    ]
+    mails.reverse()
+    return {'status': True,
+            'total_message_recent': total_message_recent,
+            'emails': mails}
 
 
 # API в доработке, отправка будет осуществляться через celery
@@ -172,24 +191,26 @@ async def new_mails(
              summary=tags_description_api['send_mail']['summary'],
              description=tags_description_api['send_mail']['description']
              )
-async def send_emails(email_send: EmailSend,
-                      background_tasks: BackgroundTasks,
-                      mail_login=Depends(get_mail_login_pam),
-                      smtp=Depends(get_smtp_connection),
-                      imap=Depends(get_imap_connection)):
+async def send_emails(
+        email_send: EmailSend,
+        background_tasks: BackgroundTasks,
+        mail_login=Depends(get_mail_login_pam),
+        smtp=Depends(get_smtp_connection),
+        imap=Depends(get_imap_connection)):
     if mail_login is None:
         raise HTTPExceptionMail.NOT_AUTHENTICATED_401
 
-    message = await create_email_with_attachments(email_send, mail_login)
+    message = await create_email_with_attachments(email_send, mail_login) # добавить формирование message_ID
     logger.info(f"Создалось сообщение")
     try:
-        status, response = await smtp.send_message(message)
-        logger.info(f"отправлено {status}, {response}")
+        _, response = await smtp.send_message(message)
+        if not response.startswith('OK'):
+            raise HTTPExceptionMail.SMTP_TIMEOUT_504
         # await imap.append(message_bytes=message.as_bytes(), mailbox='Sent', flags=EmailFlags.flags['seen'])
-        # logger.info("Добавлено в отправленные")
-        return Response(status_code=status_code.HTTP_200_OK, )
-        # background=background_tasks.add_task(append_inbox_message_in_sent, message, imap))
-    except Exception:
+        return Response(status_code=status_code.HTTP_200_OK,
+                        background=background_tasks.add_task(append_inbox_message_in_sent, message, imap))
+    except Exception as e:
+        logger.critical(e)
         raise HTTPExceptionMail.SMTP_TOO_MANY_REQUESTS_429
 
 
@@ -204,10 +225,11 @@ async def folders(imap=Depends(get_imap_connection)):
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
     if status == 'OK':
-        # folders = await parse_folders(response)
-        return {'status': True, 'folders': await parse_folders(response)}
+        return {'status': True,
+                'folders': parse_folders(response)}
     else:
-        return {'status': False, 'folders': None}
+        return {'status': False,
+                'folders': None}
 
 
 @api_v1.post("/create_folder",
@@ -225,9 +247,11 @@ async def create_folder(mbox: NameFolder, imap=Depends(get_imap_connection)):
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
     if status == 'OK':
-        return {'status': True, 'message': f"Папка {mbox.name} успешно создана"}
+        return {'status': True,
+                'message': f"Папка {mbox.name} успешно создана"}
     else:
-        return {'status': False, 'message': f"Не удалось создать папку {mbox.name}"}
+        return {'status': False,
+                'message': f"Не удалось создать папку {mbox.name}"}
 
 
 @api_v1.post("/delete_folder",
@@ -245,9 +269,11 @@ async def delete_folder(mbox: NameFolder, imap=Depends(get_imap_connection)):
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
     if status == 'OK':
-        return {'status': True, 'message': f"Папка {mbox.name} успешно удалена"}
+        return {'status': True,
+                'message': f"Папка {mbox.name} успешно удалена"}
     else:
-        return {'status': False, 'message': f"Не удалось удалить папку {mbox.name}"}
+        return {'status': False,
+                'message': f"Не удалось удалить папку {mbox.name}"}
 
 
 @api_v1.post("/rename_folder",
@@ -318,8 +344,8 @@ async def body_message(
 
 
 @api_v1.get("/status_folder",
-            # response_model=StatusFolderResponse,
-            # responses=status_folder_response_example,
+            response_model=List[StatusFolderResponse],
+            responses=status_folder_response_example,
             tags=['Status folder'],
             summary=tags_description_api['status_folder']['summary'],
             description=tags_description_api['status_folder']['description'])
@@ -329,21 +355,21 @@ async def status_folder(
         status, response = await imap.list('""', '"*"')
         if status != 'OK':
             raise HTTPExceptionMail.FOLDER_NOT_FOUND_404
-        all_folders: Optional[list[str]] = await parse_folders(response) if status == 'OK' else None
-        data_folders = {}
+        all_folders: Optional[list[str]] = parse_folders(response) if status == 'OK' else None
+        data_folders = []
         for folder in all_folders:
             folder = encode_name_imap_utf7(folder)
             status, response = await imap.status(f'"{folder}"', '(MESSAGES UNSEEN RECENT)')
-            parsed_data = await parse_status_folders_response(response=response[0])
-            data_folders[decode_name_imap_utf7(folder)] = parsed_data
+            if status != 'OK':
+                raise HTTPExceptionMail.IMAP_TIMEOUT_504
+            parsed_data = parse_status_folders_response(response=response[0])
+            parsed_data['key'] = decode_name_imap_utf7(folder)
+            data_folders.append(parsed_data)
+        data_folders.reverse()
+        return data_folders
 
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
-    if status == 'NO':
-        raise HTTPExceptionMail.FOLDER_NOT_FOUND_404
-    if status != 'OK':
-        raise HTTPExceptionMail.IMAP_TIMEOUT_504
-    return data_folders
 
 
 # \\Flagged
@@ -368,16 +394,19 @@ async def mark_read_unread(
             if status != 'OK':
                 raise HTTPExceptionMail.IMAP_TIMEOUT_504
             if len(response) == 1:
-                return {'status': False, 'message': 'Сообщение и так не прочитано'}
+                return {'status': False,
+                        'message': 'Сообщение и так не прочитано'}
         else:
             status, response = await imap.uid("STORE", uid, "-FLAGS", f"({EmailFlags.flags['seen']})")
             if status != 'OK':
                 raise HTTPExceptionMail.IMAP_TIMEOUT_504
             if len(response) == 1:
-                return {'status': False, 'message': 'Сообщение уже было прочитано'}
+                return {'status': False,
+                        'message': 'Сообщение уже было прочитано'}
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
-    return {'status': True, 'message': 'Статус сообщения изменен'}
+    return {'status': True,
+            'message': 'Статус сообщения изменен'}
 
 
 @api_v1.get("/mark_flagged",
@@ -402,16 +431,19 @@ async def mark_read_unread(
             if status != 'OK':
                 raise HTTPExceptionMail.IMAP_TIMEOUT_504
             if len(response) == 1:
-                return {'status': False, 'message': 'Флаг уже был установлен'}
+                return {'status': False,
+                        'message': 'Флаг уже был установлен'}
         else:
             status, response = await imap.uid("STORE", uid, "-FLAGS", f"({EmailFlags.flags['flagged']})")
             if status != 'OK':
                 raise HTTPExceptionMail.IMAP_TIMEOUT_504
             if len(response) == 1:
-                return {'status': False, 'message': 'Флаг уже был снят'}
+                return {'status': False,
+                        'message': 'Флаг уже был снят'}
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
-    return {'status': True, 'message': 'Флаг изменен'}
+    return {'status': True,
+            'message': 'Флаг изменен'}
 
 
 @api_v1.post("/move_email",
@@ -475,7 +507,6 @@ async def copy_email(
             raise HTTPException(status_code=status_code.HTTP_404_NOT_FOUND,
                                 detail=f"Исходная папка '{copy_emails.source_folder}' не найдена")
 
-        # status, response = await imap.uid('COPY', uid, encoded_target)
         if isinstance(copy_emails.uid, list):
             uid_str = ",".join(copy_emails.uid)
         else:
@@ -496,8 +527,6 @@ async def copy_email(
 
 
 @api_v1.get("/download_attachment",
-            # response_model=BodyResponse,
-            # responses=body_message_response_example,
             tags=['Donwload attachment'],
             summary=tags_description_api['download_attachment']['summary'],
             description=tags_description_api['download_attachment']['description'])
@@ -506,7 +535,6 @@ async def download_attachment(
         mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
         uid: str = Query(..., description="UID письма", example="989"),
         part: int = Query(..., description=""),
-        base64_status: bool = Query(True, description=""),
         imap=Depends(get_imap_connection)
 ):
     folder = encode_name_imap_utf7(mbox)
@@ -539,8 +567,6 @@ async def download_attachment(
     # CHUNK_SIZE = 1024 * 64  # 64KB
     offset = 0
     fetched_data = bytearray()
-    start = datetime.now()
-    # 1с на 6,6 мб
 
     while True:
         fetch_cmd = f"BODY.PEEK[{part + 2}]<{offset}.{CHUNK_SIZE}>"
@@ -549,22 +575,16 @@ async def download_attachment(
         if status != "OK":
             raise HTTPExceptionMail.IMAP_TIMEOUT_504
 
-        # chunk_resp[0] должен содержать данные
         chunk_data = chunk_resp[1] if isinstance(chunk_resp[1], tuple) else chunk_resp[1]
         if not chunk_data:
-            break  # конец данных
+            break
 
         fetched_data += chunk_data
         if len(chunk_data) < CHUNK_SIZE:
-            break  # последняя часть
-
+            break
         offset += CHUNK_SIZE
 
-    end = datetime.now()
-    print('time download file imap end=', end - start)
-    temp_path = await async_chunked_base64_to_temp(fetched_data)
-    print('base64 end')
-
+    temp_path, _ = await async_chunked_base64_to_temp(fetched_data, UPLOAD_DIR)
     file_size = os.path.getsize(temp_path)
 
     async def file_sender(file_path: str):
@@ -577,7 +597,7 @@ async def download_attachment(
                     yield chunk
         except Exception as e:
             logging.error(f"Error streaming file {file_path}: {str(e)}")
-            raise
+            raise HTTPExceptionMail.ERROR_SAVED_FILE_400
 
     return StreamingResponse(
         file_sender(temp_path),
@@ -633,7 +653,8 @@ async def delete_mails(
             if status != 'OK':
                 raise HTTPExceptionMail.ERROR_DELETES_MAILS_304
             await imap.expunge()
-            return {'status': True, 'message': f'Выбранные сообщения удалены из {uids_mails.mbox}'}
+            return {'status': True,
+                    'message': f'Выбранные сообщения удалены из {uids_mails.mbox}'}
         if uids_mails.clear_all_trash is True:
             status_all, messages = await imap.uid_search("ALL")
             if status_all != 'OK':
@@ -643,7 +664,8 @@ async def delete_mails(
             if status != 'OK':
                 raise HTTPExceptionMail.ERROR_DELETES_MAILS_304
             await imap.expunge()
-        return {'status': True, 'message': f'Все сообщения удалены из {uids_mails.mbox}'}
+        return {'status': True,
+                'message': f'Все сообщения удалены из {uids_mails.mbox}'}
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
 
@@ -655,7 +677,7 @@ async def delete_mails(
             summary="Поиск почтовых сообщений по фильтрам",
             description="Поиск почтовых сообщений по теме, отправителю, дате или по содержимому")
 async def search_mails(
-        mbox: str = Query(..., description="Mailbox folder", example="INBOX"),
+        mbox: str = Query(..., description="Папка, где искать письма", example="INBOX"),
         subject: Optional[str] = Query(None, description="Тема"),
         from_: Optional[str] = Query(None, alias="from", description="От кого"),
         since_date: Optional[str] = Query(None, description="Дата (DD.MM.YYYY)"),
@@ -689,6 +711,7 @@ async def search_mails(
             search_criteria = ['ALL']
 
         status_search, messages = await imap.uid_search(*search_criteria)
+
         status_unread, messages_unseen = await imap.uid_search("UNSEEN")
         if status_search != 'OK' or status_unread != 'OK':
             raise HTTPExceptionMail.IMAP_TIMEOUT_504
@@ -717,18 +740,23 @@ async def search_mails(
 
         mails = build_email_tree_by_references(messages_dict)
         mails.sort(key=get_max_uid_in_thread, reverse=True)
-        return {'status': True, 'total_search': len(mails_uids_search), 'mails': mails}
+        return {'status': True,
+                'total_search': len(mails_uids_search),
+                'mails': mails}
 
     except asyncio.exceptions.TimeoutError:
         raise HTTPExceptionMail.IMAP_TIMEOUT_504
 
 
-@api_v1.post("/upload_attachments", tags=["Upload attachment"])
+@api_v1.post("/upload_attachments",
+             summary=tags_description_api['upload_attachments']['summary'],
+             description=tags_description_api['upload_attachments']['description'],
+             tags=["Upload attachment on server"])
 async def upload_attachments(files: List[UploadFile] = File(...)):
     results = []
     for file in files:
-        file_id = str(uuid.uuid4())
-        save_path = UPLOAD_DIR / file_id
+        file_uuid = str(uuid.uuid4())
+        save_path = UPLOAD_DIR / file_uuid
         try:
             async with semaphore_upload_files:
                 async with aiofiles.open(save_path, "wb") as out_file:
@@ -736,8 +764,9 @@ async def upload_attachments(files: List[UploadFile] = File(...)):
                         await out_file.write(content)
 
             results.append({
-                "id": file_id,
+                "uuid": file_uuid,
                 "filename": file.filename,
+                "size": file.size
             })
         except Exception:
             raise HTTPExceptionMail.ERROR_SAVED_FILE_400
@@ -745,7 +774,10 @@ async def upload_attachments(files: List[UploadFile] = File(...)):
     return {"files": results}
 
 
-@api_v1.post("/delete_attachments", tags=["Upload attachment"])
+@api_v1.post("/delete_attachments",
+             summary=tags_description_api['delete_attachments']['summary'],
+             description=tags_description_api['delete_attachments']['description'],
+             tags=["Upload attachment on server"])
 async def delete_attachments(files: List[str]):
     deleted = []
     not_found = []
@@ -763,3 +795,64 @@ async def delete_attachments(files: List[str]):
         "deleted": deleted,
         "not_found": not_found
     }
+
+
+@api_v1.get("/save_attachments",
+            response_model=List[AttachmentSaved],
+            responses=save_attachmens_response_example,
+            summary=tags_description_api['save_attachments']['summary'],
+            description=tags_description_api['save_attachments']['description'],
+            tags=["Upload attachment on server"])
+async def save_attachments(
+        mbox: str = Query(..., description="Название папки в почтовом ящике", example="INBOX"),
+        uid: str = Query(..., description="UID письма", example="989"),
+        imap=Depends(get_imap_connection)
+):
+    folder = encode_name_imap_utf7(mbox)
+    try:
+        status, _ = await imap.select(f'"{folder}"')
+    except asyncio.exceptions.TimeoutError:
+        raise HTTPExceptionMail.IMAP_TIMEOUT_504
+    if status != 'OK':
+        raise HTTPExceptionMail.FOLDER_NOT_FOUND_404
+    try:
+        status, response_body_struct = await imap.uid("FETCH", uid, f"(BODYSTRUCTURE)")
+    except Exception:
+        raise HTTPExceptionMail.IMAP_TIMEOUT_504
+    if status != 'OK':
+        raise HTTPExceptionMail.IMAP_TIMEOUT_504
+    if len(response_body_struct) == 1:
+        raise HTTPExceptionMail.MESSAGE_NOT_FOUND_404
+
+    attachments = await get_name_attachments(response_body_struct[0])
+    files_saved = []
+
+    for part, file in enumerate(attachments):
+        ascii_fallback = re.sub(r'[^\x20-\x7E]', '_', file['filename'])
+        mime_type, _ = mimetypes.guess_type(ascii_fallback)
+        CHUNK_SIZE = 1024 * 16  # 64KB
+        offset = 0
+        fetched_data = bytearray()
+        while True:
+            fetch_cmd = f"BODY.PEEK[{part + 2}]<{offset}.{CHUNK_SIZE}>"
+            status, chunk_resp = await imap.uid("FETCH", uid, f"({fetch_cmd})")
+            if status != "OK":
+                raise HTTPExceptionMail.IMAP_TIMEOUT_504
+
+            chunk_data = chunk_resp[1] if isinstance(chunk_resp[1], tuple) else chunk_resp[1]
+            if not chunk_data:
+                break
+
+            fetched_data += chunk_data
+            if len(chunk_data) < CHUNK_SIZE:
+                break
+
+            offset += CHUNK_SIZE
+
+        temp_path, file_uuid = await async_chunked_base64_to_temp(fetched_data, UPLOAD_DIR)
+        file_size = os.path.getsize(temp_path)
+        file_info = {"uuid": file_uuid,
+                     "filename": file['filename'],
+                     "size": file_size}
+        files_saved.append(file_info)
+    return files_saved
